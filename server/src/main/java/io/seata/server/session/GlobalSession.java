@@ -72,6 +72,7 @@ public class GlobalSession implements SessionLifecycle, SessionStorable {
 
     private boolean active = true;
 
+    //所有分支session
     private final ArrayList<BranchSession> branchSessions = new ArrayList<>();
 
     private GlobalSessionLock globalSessionLock = new GlobalSessionLock();
@@ -100,6 +101,7 @@ public class GlobalSession implements SessionLifecycle, SessionStorable {
     private Set<SessionLifecycleListener> lifecycleListeners = new HashSet<>();
 
     /**
+     * TCC不能异步提交
      * Can be committed async boolean.
      *
      * @return the boolean
@@ -664,6 +666,16 @@ public class GlobalSession implements SessionLifecycle, SessionStorable {
         this.changeStatus(GlobalStatus.AsyncCommitting);
     }
 
+    /***
+     *
+     * 重试
+     *
+     * @author liyong
+     * @date 00:52 2020-03-21
+     * @param
+     * @exception
+     * @return void
+     **/
     public void queueToRetryCommit() throws TransactionException {
         this.addSessionLifecycleListener(SessionHolder.getRetryCommittingSessionManager());
         SessionHolder.getRetryCommittingSessionManager().addGlobalSession(this);

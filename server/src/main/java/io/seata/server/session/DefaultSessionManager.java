@@ -27,6 +27,9 @@ import io.seata.server.store.AbstractTransactionStoreManager;
 import io.seata.server.store.SessionStorable;
 
 /**
+ *
+ * 基于内存的session持久化实现
+ *
  * The type Default session manager, store session data in memory.
  *
  * @author sharajava

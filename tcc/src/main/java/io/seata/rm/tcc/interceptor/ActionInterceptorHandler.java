@@ -46,6 +46,10 @@ public class ActionInterceptorHandler {
     /**
      * Handler the TCC Aspect
      *
+     * 1.向TC注册分支事务，同时获取分支事务id`branchid`
+     * 2.替换被{@link TwoPhaseBusinessAction}注解标注的参数值，外部传入null即可
+     * 3.执行下一个拦截器或者是方法调用
+     *
      * @param method         the method
      * @param arguments      the arguments
      * @param businessAction the business action
@@ -64,11 +68,12 @@ public class ActionInterceptorHandler {
         //set action anme
         actionContext.setActionName(actionName);
 
-        //Creating Branch Record
+        //Creating Branch Record  注册事务分支
         String branchId = doTccActionLogStore(method, arguments, businessAction, actionContext);
+        //上下文保存分支事务 id
         actionContext.setBranchId(branchId);
 
-        //set the parameter whose type is BusinessActionContext
+        //set the parameter whose type is BusinessActionContext  替换BusinessActionContext类型的参数值，因此外部传入null即可
         Class<?>[] types = method.getParameterTypes();
         int argIndex = 0;
         for (Class<?> cls : types) {
@@ -113,7 +118,7 @@ public class ActionInterceptorHandler {
         applicationContext.put(Constants.TCC_ACTION_CONTEXT, context);
         String applicationContextStr = JSON.toJSONString(applicationContext);
         try {
-            //registry branch record
+            //registry branch record 向TC注册一个`branch`分支
             Long branchId = DefaultResourceManager.get().branchRegister(BranchType.TCC, actionName, null, xid,
                 applicationContextStr, null);
             return String.valueOf(branchId);
@@ -138,6 +143,7 @@ public class ActionInterceptorHandler {
     }
 
     /**
+     * 初始化一阶段执行方法 二阶段commit或roolback方法
      * Init business context
      *
      * @param context        the context

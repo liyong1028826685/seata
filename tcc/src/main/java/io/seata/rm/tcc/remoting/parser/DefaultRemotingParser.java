@@ -40,7 +40,7 @@ import io.seata.rm.tcc.remoting.RemotingParser;
 public class DefaultRemotingParser {
 
     /**
-     * all remoting bean parser
+     * all remoting bean parser 远程服务调用的解析器 可自定义拓展支持其他远程服务调用
      */
     protected static List<RemotingParser> allRemotingParsers = new ArrayList<>();
 

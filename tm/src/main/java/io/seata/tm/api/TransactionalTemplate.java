@@ -44,7 +44,7 @@ public class TransactionalTemplate {
      * @throws TransactionalExecutor.ExecutionException the execution exception
      */
     public Object execute(TransactionalExecutor business) throws Throwable {
-        // 1. get or create a transaction
+        // 1. get or create a transaction 获取或创建一个事务
         GlobalTransaction tx = GlobalTransactionContext.getCurrentOrCreate();
 
         // 1.1 get transactionInfo
@@ -54,23 +54,23 @@ public class TransactionalTemplate {
         }
         try {
 
-            // 2. begin transaction
+            // 2. begin transaction 开启全局事务
             beginTransaction(txInfo, tx);
 
             Object rs = null;
             try {
 
-                // Do Your Business
+                // Do Your Business 分支事务处理逻辑，调用prepare
                 rs = business.execute();
 
             } catch (Throwable ex) {
 
-                // 3.the needed business exception to rollback.
+                // 3.the needed business exception to rollback.根据异常进行回滚，调用rollback
                 completeTransactionAfterThrowing(txInfo,tx,ex);
                 throw ex;
             }
 
-            // 4. everything is fine, commit.
+            // 4. everything is fine, commit. 没有异常全局事务提交，调用commit
             commitTransaction(tx);
 
             return rs;

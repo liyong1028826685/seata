@@ -45,6 +45,10 @@ import org.springframework.util.ClassUtils;
 import static io.seata.core.constants.DefaultValues.DEFAULT_DISABLE_GLOBAL_TRANSACTION;
 
 /**
+ *
+ * 1.开启全局事务注册到事务上下文：TM查找上下 文不存在xid就通过向TC申请一个xid，同时TM会保存xid到事务上下文
+ * 2.申明一个全局锁，实际是在事务上下文设置一个标记当业务逻辑执行完成删除这个标记
+ *
  * The type Global transactional interceptor.
  *
  * @author slievrly
@@ -74,16 +78,20 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
     public Object invoke(final MethodInvocation methodInvocation) throws Throwable {
         Class<?> targetClass = methodInvocation.getThis() != null ? AopUtils.getTargetClass(methodInvocation.getThis())
             : null;
+        //获得实例方法
         Method specificMethod = ClassUtils.getMostSpecificMethod(methodInvocation.getMethod(), targetClass);
         final Method method = BridgeMethodResolver.findBridgedMethod(specificMethod);
 
         final GlobalTransactional globalTransactionalAnnotation = getAnnotation(method, GlobalTransactional.class);
         final GlobalLock globalLockAnnotation = getAnnotation(method, GlobalLock.class);
         if (!disable && globalTransactionalAnnotation != null) {
+            //处理全局事务
             return handleGlobalTransaction(methodInvocation, globalTransactionalAnnotation);
         } else if (!disable && globalLockAnnotation != null) {
+            //处理全局锁
             return handleGlobalLock(methodInvocation);
         } else {
+            //忽略seata分布式事务
             return methodInvocation.proceed();
         }
     }
@@ -106,6 +114,7 @@ public class GlobalTransactionalInterceptor implements ConfigurationChangeListen
             return transactionalTemplate.execute(new TransactionalExecutor() {
                 @Override
                 public Object execute() throws Throwable {
+                    //执行全局事务业务体
                     return methodInvocation.proceed();
                 }
 

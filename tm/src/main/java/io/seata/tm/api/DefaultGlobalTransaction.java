@@ -102,8 +102,10 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
         if (RootContext.getXID() != null) {
             throw new IllegalStateException();
         }
+        //通过TM向TC申请一个xid
         xid = transactionManager.begin(null, null, name, timeout);
         status = GlobalStatus.Begin;
+        //事务上下文绑定xid
         RootContext.bind(xid);
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("Begin new global transaction [{}]", xid);
@@ -113,6 +115,7 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
 
     @Override
     public void commit() throws TransactionException {
+        //事务参与者不能提交事务(RM)
         if (role == GlobalTransactionRole.Participant) {
             // Participant has no responsibility of committing
             if (LOGGER.isDebugEnabled()) {
@@ -125,8 +128,10 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
         }
         int retry = COMMIT_RETRY_COUNT;
         try {
+            //可自定义重试次数
             while (retry > 0) {
                 try {
+                    //TM向TC提交xid指定的事务
                     status = transactionManager.commit(xid);
                     break;
                 } catch (Throwable ex) {
@@ -138,6 +143,7 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
                 }
             }
         } finally {
+            //解绑xid事务上下文
             if (RootContext.getXID() != null && xid.equals(RootContext.getXID())) {
                 RootContext.unbind();
             }
@@ -165,6 +171,7 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
         try {
             while (retry > 0) {
                 try {
+                    //TM向TC申请回滚xid的事务
                     status = transactionManager.rollback(xid);
                     break;
                 } catch (Throwable ex) {
@@ -176,6 +183,7 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
                 }
             }
         } finally {
+            //解绑xid事务上下文
             if (RootContext.getXID() != null && xid.equals(RootContext.getXID())) {
                 RootContext.unbind();
             }

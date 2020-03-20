@@ -45,6 +45,9 @@ public abstract class AbstractResourceManager implements ResourceManager {
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractResourceManager.class);
 
     /**
+     *
+     * RM客户端向TC注册`branch`
+     *
      * registry branch record
      * @param branchType the branch type
      * @param resourceId the resource id

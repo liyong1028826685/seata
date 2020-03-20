@@ -22,6 +22,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import static io.seata.spring.boot.autoconfigure.StarterConstants.SEATA_PREFIX;
 
 /**
+ * Seata相关外部化配置
  * @author xingfudeshi@gmail.com
  */
 @ConfigurationProperties(prefix = SEATA_PREFIX)

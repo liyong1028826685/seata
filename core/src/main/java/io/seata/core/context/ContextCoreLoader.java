@@ -30,7 +30,8 @@ public class ContextCoreLoader {
 
     }
 
-    private static class ContextCoreHolder {
+     private static class ContextCoreHolder {
+        //类似SPI查找扩展点的方式 获取上下文存储的实现
         private static final ContextCore INSTANCE = Optional.ofNullable(EnhancedServiceLoader.load(ContextCore.class)).orElse(new ThreadLocalContextCore());
     }
 

@@ -28,6 +28,7 @@ import io.seata.core.rpc.netty.RmRpcClient;
 import io.seata.core.rpc.netty.ShutdownHook;
 import io.seata.core.rpc.netty.TmRpcClient;
 import io.seata.rm.RMClient;
+import io.seata.rm.tcc.api.TwoPhaseBusinessAction;
 import io.seata.spring.tcc.TccActionInterceptor;
 import io.seata.spring.util.SpringProxyUtils;
 import io.seata.spring.util.TCCBeanParserUtils;
@@ -45,6 +46,7 @@ import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -192,10 +194,34 @@ public class GlobalTransactionScanner extends AbstractAutoProxyCreator
             ((ConfigurableApplicationContext) applicationContext).registerShutdownHook();
             ShutdownHook.removeRuntimeShutdownHook();
         }
+        //关闭TM、RM资源
         ShutdownHook.getInstance().addDisposable(TmRpcClient.getInstance(applicationId, txServiceGroup));
         ShutdownHook.getInstance().addDisposable(RmRpcClient.getInstance(applicationId, txServiceGroup));
     }
 
+    /***
+     *
+     * 当前类实现了{@link AbstractAutoProxyCreator}实现了{@link BeanPostProcessor}
+     *
+     * 在bean创建的时候被回掉
+     *->createBean
+     *   ->doCreateBean
+     *      ->initializeBean
+     *         ->applyBeanPostProcessorsAfterInitialization
+     *           ->postProcessAfterInitialization
+     *             ->wrapIfNecessary
+     * 返回的bean被包装成了proxy对象并植入一个MethodInterceptor拦截器
+     * 1.bean方法标注了注解{@link TwoPhaseBusinessAction}此时拦截器使用{@link TccActionInterceptor}
+     * 2.bean方法被标注了注解{@link GlobalTransactional}和{@link GlobalLock}注解使用拦截器 {@link GlobalTransactionalInterceptor}
+     *
+     * @author liyong
+     * @date 00:48 2020-03-18
+     * @param bean
+     * @param beanName
+     * @param cacheKey
+     * @exception
+     * @return java.lang.Object
+     **/
     @Override
     protected Object wrapIfNecessary(Object bean, String beanName, Object cacheKey) {
         if (disableGlobalTransaction) {
@@ -210,6 +236,7 @@ public class GlobalTransactionScanner extends AbstractAutoProxyCreator
                 //check TCC proxy
                 if (TCCBeanParserUtils.isTccAutoProxy(bean, beanName, applicationContext)) {
                     //TCC interceptor, proxy bean of sofa:reference/dubbo:reference, and LocalTCC
+                    //对代理的远程bean调用以及LocalTCC的拦截器植入 方法有被注解TwoPhaseBusinessAction标注
                     interceptor = new TccActionInterceptor(TCCBeanParserUtils.getRemotingDesc(beanName));
                 } else {
                     Class<?> serviceInterface = SpringProxyUtils.findTargetClass(bean);
@@ -219,7 +246,7 @@ public class GlobalTransactionScanner extends AbstractAutoProxyCreator
                         && !existsAnnotation(interfacesIfJdk)) {
                         return bean;
                     }
-
+                    //全局事务拦截器 方法被GlobalTransactional或GlobalLock标注
                     if (interceptor == null) {
                         interceptor = new GlobalTransactionalInterceptor(failureHandlerHook);
                         ConfigurationFactory.getInstance().addConfigListener(ConfigurationKeys.DISABLE_GLOBAL_TRANSACTION, (ConfigurationChangeListener) interceptor);
@@ -228,8 +255,10 @@ public class GlobalTransactionScanner extends AbstractAutoProxyCreator
 
                 LOGGER.info("Bean[{}] with name [{}] would use interceptor [{}]", bean.getClass().getName(), beanName, interceptor.getClass().getName());
                 if (!AopUtils.isAopProxy(bean)) {
+                    //bean没有被代理直接包装成代理
                     bean = super.wrapIfNecessary(bean, beanName, cacheKey);
                 } else {
+                    //bean已经被代理了增加Advisor包装Interceptor
                     AdvisedSupport advised = SpringProxyUtils.getAdvisedSupport(bean);
                     Advisor[] advisor = buildAdvisors(beanName, getAdvicesAndAdvisorsForBean(null, null, null));
                     for (Advisor avr : advisor) {

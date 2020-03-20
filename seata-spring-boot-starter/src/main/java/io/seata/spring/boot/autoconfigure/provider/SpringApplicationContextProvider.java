@@ -23,6 +23,7 @@ import org.springframework.context.ApplicationContextAware;
 import static io.seata.common.Constants.OBJECT_KEY_SPRING_APPLICATION_CONTEXT;
 
 /**
+ * 保存Spring的ApplicationContext
  * @author xingfudeshi@gmail.com
  * The type spring application context provider
  */

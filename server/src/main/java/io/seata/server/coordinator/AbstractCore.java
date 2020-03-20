@@ -141,7 +141,17 @@ public abstract class AbstractCore implements Core {
             throws TransactionException {
         return true;
     }
-
+    /***
+     *
+     * 通知RM进行分支事务 提交
+     *
+     * @author liyong
+     * @date 00:50 2020-03-21
+     * @param globalSession
+ * @param branchSession
+     * @exception
+     * @return io.seata.core.model.BranchStatus
+     **/
     @Override
     public BranchStatus branchCommit(GlobalSession globalSession, BranchSession branchSession) throws TransactionException {
         try {
@@ -159,6 +169,18 @@ public abstract class AbstractCore implements Core {
         }
     }
 
+    /***
+     *
+     * 向RM发送消息 进行事务的提交
+     *
+     * @author liyong
+     * @date 00:50 2020-03-21
+     * @param request
+ * @param globalSession
+ * @param branchSession
+     * @exception
+     * @return io.seata.core.model.BranchStatus
+     **/
     protected BranchStatus branchCommitSend(BranchCommitRequest request, GlobalSession globalSession,
                                             BranchSession branchSession) throws IOException, TimeoutException {
         BranchCommitResponse response = (BranchCommitResponse) messageSender.sendSyncRequest(

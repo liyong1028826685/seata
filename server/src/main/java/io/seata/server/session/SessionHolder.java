@@ -249,6 +249,7 @@ public class SessionHolder {
     }
 
     /**
+     * 通过SPI查找SessionManager的实现 查找到xid对应的GlobalSession
      * Find global session.
      *
      * @param xid the xid

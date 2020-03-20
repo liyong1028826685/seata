@@ -32,6 +32,7 @@ import java.lang.reflect.Method;
 import java.util.Map;
 
 /**
+ * TCC拦截器处理逻辑
  * TCC Interceptor
  *
  * @author zhangsen
@@ -64,11 +65,22 @@ public class TccActionInterceptor implements MethodInterceptor {
 
     @Override
     public Object invoke(final MethodInvocation invocation) throws Throwable {
+        //判断是否在全局事务中，判断事务上下文中是否有xid，在分布式事务中xid是随着调用请求会进行服务间传递的
         if (!RootContext.inGlobalTransaction()) {
             //not in transaction
             return invocation.proceed();
         }
+        //拦截的方法
         Method method = getActionInterfaceMethod(invocation);
+        /**
+         * 描述了TCC两个阶段
+         * >1.一阶段：
+         *   1.该方法为一阶段prepare
+         * >2.二阶段：
+         *   1.提交方法commitMethod = "commit",
+         *   2.回滚方法rollbackMethod = "rollback"
+         * >3.
+         */
         TwoPhaseBusinessAction businessAction = method.getAnnotation(TwoPhaseBusinessAction.class);
         //try method
         if (businessAction != null) {
@@ -103,11 +115,13 @@ public class TccActionInterceptor implements MethodInterceptor {
         try {
             Class<?> interfaceType;
             if (remotingDesc == null) {
+                //获取代理类的接口：可能是dubbo的代理或者是jdk/cglib
                 interfaceType = getProxyInterface(invocation.getThis());
             } else {
                 interfaceType = remotingDesc.getInterfaceClass();
             }
             if (interfaceType == null && remotingDesc.getInterfaceClassName() != null) {
+                //装载这个Class
                 interfaceType = Class.forName(remotingDesc.getInterfaceClassName(), true,
                     Thread.currentThread().getContextClassLoader());
             }

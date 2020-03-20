@@ -44,6 +44,19 @@ import io.seata.core.rpc.netty.TmRpcClient;
  */
 public class DefaultTransactionManager implements TransactionManager {
 
+    /***
+     *
+     * 事务开启
+     *
+     * @author liyong
+     * @date 23:36 2020-03-20
+     * @param applicationId
+ * @param transactionServiceGroup
+ * @param name
+ * @param timeout
+     * @exception
+     * @return java.lang.String
+     **/
     @Override
     public String begin(String applicationId, String transactionServiceGroup, String name, int timeout)
         throws TransactionException {

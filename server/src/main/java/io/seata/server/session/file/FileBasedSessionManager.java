@@ -41,6 +41,8 @@ import io.seata.server.store.TransactionStoreManager;
 import io.seata.server.store.TransactionWriteStore;
 
 /**
+ * 基于文件的session持久化实现
+ *
  * The type File based session manager.
  *
  * @author slievrly

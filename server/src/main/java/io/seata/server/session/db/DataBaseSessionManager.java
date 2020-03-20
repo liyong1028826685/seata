@@ -42,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 数据库的session持久化实现
  * The Data base session manager.
  *
  * @author zhangsen

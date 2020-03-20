@@ -124,10 +124,10 @@ public class DefaultCore implements Core {
         GlobalSession session = GlobalSession.createGlobalSession(applicationId, transactionServiceGroup, name,
                 timeout);
         session.addSessionLifecycleListener(SessionHolder.getRootSessionManager());
-
+        //对session进行持久化
         session.begin();
 
-        // transaction start event
+        // transaction start event 事务事件推送
         eventBus.post(new GlobalTransactionEvent(session.getTransactionId(), GlobalTransactionEvent.ROLE_TC,
                 session.getTransactionName(), session.getBeginTime(), null, session.getStatus()));
 
@@ -135,12 +135,23 @@ public class DefaultCore implements Core {
         return session.getXid();
     }
 
+    /***
+     *
+     * 向RM发送Commit消息
+     *
+     * @author liyong
+     * @date 00:55 2020-03-21
+     * @param xid
+     * @exception
+     * @return io.seata.core.model.GlobalStatus
+     **/
     @Override
     public GlobalStatus commit(String xid) throws TransactionException {
         GlobalSession globalSession = SessionHolder.findGlobalSession(xid);
         if (globalSession == null) {
             return GlobalStatus.Finished;
         }
+        //添加session监听器
         globalSession.addSessionLifecycleListener(SessionHolder.getRootSessionManager());
         // just lock changeStatus
 
@@ -148,6 +159,7 @@ public class DefaultCore implements Core {
             // the lock should release after branch commit
             // Highlight: Firstly, close the session, then no more branch can be registered.
             globalSession.closeAndClean();
+            //判断是否 可以提交
             if (globalSession.getStatus() == GlobalStatus.Begin) {
                 globalSession.changeStatus(GlobalStatus.Committing);
                 return true;
@@ -157,10 +169,12 @@ public class DefaultCore implements Core {
         if (!shouldCommit) {
             return globalSession.getStatus();
         }
+        //异步提交：TCC不能异步提交事务
         if (globalSession.canBeCommittedAsync()) {
             globalSession.asyncCommit();
             return GlobalStatus.Committed;
         } else {
+            //同步提交
             doGlobalCommit(globalSession, false);
         }
         return globalSession.getStatus();
@@ -173,16 +187,19 @@ public class DefaultCore implements Core {
         eventBus.post(new GlobalTransactionEvent(globalSession.getTransactionId(), GlobalTransactionEvent.ROLE_TC,
                 globalSession.getTransactionName(), globalSession.getBeginTime(), null, globalSession.getStatus()));
 
+        //是否是saga模式
         if (globalSession.isSaga()) {
             success = getCore(BranchType.SAGA).doGlobalCommit(globalSession, retrying);
         } else {
             for (BranchSession branchSession : globalSession.getSortedBranches()) {
                 BranchStatus currentStatus = branchSession.getStatus();
+                //一阶段失败，删除分支session
                 if (currentStatus == BranchStatus.PhaseOne_Failed) {
                     globalSession.removeBranch(branchSession);
                     continue;
                 }
                 try {
+                    //向RM发送消息进行分支 事务的提交
                     BranchStatus branchStatus = getCore(branchSession.getBranchType()).branchCommit(globalSession, branchSession);
 
                     switch (branchStatus) {
@@ -201,6 +218,7 @@ public class DefaultCore implements Core {
                             }
                         default:
                             if (!retrying) {
+                                //重试会话
                                 globalSession.queueToRetryCommit();
                                 return false;
                             }
@@ -228,9 +246,10 @@ public class DefaultCore implements Core {
             }
         }
         if (success) {
+            //更新session状态
             SessionHelper.endCommitted(globalSession);
 
-            // committed event
+            // committed event 发送事务提交消息
             eventBus.post(new GlobalTransactionEvent(globalSession.getTransactionId(), GlobalTransactionEvent.ROLE_TC,
                     globalSession.getTransactionName(), globalSession.getBeginTime(), System.currentTimeMillis(),
                     globalSession.getStatus()));

@@ -278,7 +278,7 @@ public class DefaultCore implements Core {
         if (!shouldRollBack) {
             return globalSession.getStatus();
         }
-
+        //事务需要 回滚
         doGlobalRollback(globalSession, false);
         return globalSession.getStatus();
     }
@@ -290,11 +290,14 @@ public class DefaultCore implements Core {
         eventBus.post(new GlobalTransactionEvent(globalSession.getTransactionId(), GlobalTransactionEvent.ROLE_TC,
                 globalSession.getTransactionName(), globalSession.getBeginTime(), null, globalSession.getStatus()));
 
+        //saga模式
         if (globalSession.isSaga()) {
             success = getCore(BranchType.SAGA).doGlobalRollback(globalSession, retrying);
         } else {
+            //循环处理所有分支事务,通过`branchId`从大到小降序排列
             for (BranchSession branchSession : globalSession.getReverseSortedBranches()) {
                 BranchStatus currentBranchStatus = branchSession.getStatus();
+                //事务一阶段失败
                 if (currentBranchStatus == BranchStatus.PhaseOne_Failed) {
                     globalSession.removeBranch(branchSession);
                     continue;
@@ -302,11 +305,13 @@ public class DefaultCore implements Core {
                 try {
                     BranchStatus branchStatus = branchRollback(globalSession, branchSession);
                     switch (branchStatus) {
+                        //二阶段已经回滚
                         case PhaseTwo_Rollbacked:
                             globalSession.removeBranch(branchSession);
                             LOGGER.info("Successfully rollback branch xid={} branchId={}", globalSession.getXid(),
                                     branchSession.getBranchId());
                             continue;
+                        //二阶段事务回滚失败，不需要重试
                         case PhaseTwo_RollbackFailed_Unretryable:
                             SessionHelper.endRollbackFailed(globalSession);
                             LOGGER.info("Failed to rollback branch and stop retry xid={} branchId={}",
@@ -315,6 +320,7 @@ public class DefaultCore implements Core {
                         default:
                             LOGGER.info("Failed to rollback branch xid={} branchId={}", globalSession.getXid(),
                                     branchSession.getBranchId());
+                            //重试
                             if (!retrying) {
                                 globalSession.queueToRetryRollback();
                             }

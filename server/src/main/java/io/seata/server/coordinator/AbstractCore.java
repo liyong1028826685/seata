@@ -176,8 +176,8 @@ public abstract class AbstractCore implements Core {
      * @author liyong
      * @date 00:50 2020-03-21
      * @param request
- * @param globalSession
- * @param branchSession
+     * @param globalSession
+     * @param branchSession
      * @exception
      * @return io.seata.core.model.BranchStatus
      **/
@@ -188,6 +188,17 @@ public abstract class AbstractCore implements Core {
         return response.getBranchStatus();
     }
 
+    /***
+     *
+     * 分支事务回滚：TC向RM发送事务回滚请求
+     *
+     * @author liyong
+     * @date 11:02 2020-03-21
+     * @param globalSession
+     * @param branchSession
+     * @exception
+     * @return io.seata.core.model.BranchStatus
+     **/
     @Override
     public BranchStatus branchRollback(GlobalSession globalSession, BranchSession branchSession) throws TransactionException {
         try {
@@ -207,6 +218,7 @@ public abstract class AbstractCore implements Core {
 
     protected BranchStatus branchRollbackSend(BranchRollbackRequest request, GlobalSession globalSession,
                                               BranchSession branchSession) throws IOException, TimeoutException {
+        //通过RPC发送消息到TM
         BranchRollbackResponse response = (BranchRollbackResponse) messageSender.sendSyncRequest(
                 branchSession.getResourceId(), branchSession.getClientId(), request);
         return response.getBranchStatus();

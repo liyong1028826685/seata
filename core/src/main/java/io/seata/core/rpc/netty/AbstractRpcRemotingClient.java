@@ -201,6 +201,7 @@ public abstract class AbstractRpcRemotingClient extends AbstractRpcRemoting
     }
 
     /**
+     * 合并消息批量发送
      * The type Merged send runnable.
      */
     private class MergedSendRunnable implements Runnable {

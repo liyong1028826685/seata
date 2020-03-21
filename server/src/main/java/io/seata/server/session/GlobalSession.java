@@ -240,6 +240,16 @@ public class GlobalSession implements SessionLifecycle, SessionStorable {
         add(branchSession);
     }
 
+    /***
+     *
+     * 持久化session，删除当地GlobalSession中的分支事务
+     *
+     * @author liyong
+     * @date 11:00 2020-03-21
+     * @param branchSession
+     * @exception
+     * @return void
+     **/
     @Override
     public void removeBranch(BranchSession branchSession) throws TransactionException {
         for (SessionLifecycleListener lifecycleListener : lifecycleListeners) {

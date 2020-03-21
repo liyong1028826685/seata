@@ -203,7 +203,9 @@ public abstract class AbstractRpcRemoting implements Disposable {
         final RpcMessage rpcMessage = new RpcMessage();
         rpcMessage.setId(getNextMessageId());
         rpcMessage.setMessageType(ProtocolConstants.MSGTYPE_RESQUEST_ONEWAY);
+        //数据编解码
         rpcMessage.setCodec(ProtocolConstants.CONFIGURED_CODEC);
+        //开启数据压缩
         rpcMessage.setCompressor(ProtocolConstants.CONFIGURED_COMPRESSOR);
         rpcMessage.setBody(msg);
 
@@ -218,6 +220,7 @@ public abstract class AbstractRpcRemoting implements Disposable {
             Object From big to small: RpcMessage -> MergedWarpMessage -> AbstractMessage
             @see AbstractRpcRemotingClient.MergedSendRunnable
             */
+            //是否开启批量发送,批量发送先把数据放入队列中
             if (NettyClientConfig.isEnableClientBatchSendRequest()) {
                 ConcurrentHashMap<String, BlockingQueue<RpcMessage>> map = basketMap;
                 BlockingQueue<RpcMessage> basket = map.get(address);
@@ -260,6 +263,18 @@ public abstract class AbstractRpcRemoting implements Disposable {
         }
     }
 
+    /***
+     *
+     * 发送数据
+     *
+     * @author liyong
+     * @date 14:05 2020-03-21
+     * @param channel
+     * @param msg
+     * @param rpcMessage
+     * @exception
+     * @return void
+     **/
     private void sendSingleRequest(Channel channel, Object msg, RpcMessage rpcMessage) {
         ChannelFuture future;
         channelWritableCheck(channel, msg);
@@ -270,8 +285,10 @@ public abstract class AbstractRpcRemoting implements Disposable {
                 if (!future.isSuccess()) {
                     MessageFuture messageFuture = futures.remove(rpcMessage.getId());
                     if (messageFuture != null) {
+                        //CompletableFuture设置complete 阻塞获取结果可以返回
                         messageFuture.setResultMessage(future.cause());
                     }
+                    //关闭通道
                     destroyChannel(future.channel());
                 }
             }

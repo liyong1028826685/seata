@@ -81,6 +81,7 @@ public class DbStateMachineConfig extends DefaultStateMachineConfig implements D
             setStateLogStore(dbStateLogStore);
         }
 
+        //加载状态机描述语言
         if (getStateLangStore() == null) {
             DbStateLangStore dbStateLangStore = new DbStateLangStore();
             dbStateLangStore.setDataSource(dataSource);

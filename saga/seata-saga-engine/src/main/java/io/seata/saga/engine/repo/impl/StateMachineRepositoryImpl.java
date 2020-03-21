@@ -65,6 +65,7 @@ public class StateMachineRepositoryImpl implements StateMachineRepository {
         if (item.getValue() == null && stateLangStore != null) {
             synchronized (item) {
                 if (item.getValue() == null && stateLangStore != null) {
+                    //加载状态机定义
                     StateMachine stateMachine = stateLangStore.getStateMachineById(stateMachineId);
                     if (stateMachine != null) {
                         StateMachine parsedStatMachine = StateMachineParserFactory.getStateMachineParser().parse(
@@ -100,6 +101,7 @@ public class StateMachineRepositoryImpl implements StateMachineRepository {
         if (item.getValue() == null && stateLangStore != null) {
             synchronized (item) {
                 if (item.getValue() == null && stateLangStore != null) {
+                    //获取最新版本
                     StateMachine stateMachine = stateLangStore.getLastVersionStateMachine(stateMachineName, tenantId);
                     if (stateMachine != null) {
                         StateMachine parsedStatMachine = StateMachineParserFactory.getStateMachineParser().parse(

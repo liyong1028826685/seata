@@ -45,6 +45,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 /**
+ *
+ * 从Spring中查找bean的定义并调用其方法
+ *
  * SpringBean Service Invoker
  *
  * @author lorne.cl
@@ -59,6 +62,7 @@ public class SpringBeanServiceInvoker implements ServiceInvoker, ApplicationCont
     @Override
     public Object invoke(ServiceTaskState serviceTaskState, Object... input) throws Throwable {
         ServiceTaskStateImpl state = (ServiceTaskStateImpl) serviceTaskState;
+        //异步调用
         if (state.isAsync()) {
             if (threadPoolExecutor == null) {
                 if (LOGGER.isWarnEnabled()) {
@@ -90,13 +94,26 @@ public class SpringBeanServiceInvoker implements ServiceInvoker, ApplicationCont
         }
     }
 
+    /***
+     *
+     * 从Spring中查找bean并 执行方法调用
+     *
+     * @author liyong
+     * @date 23:23 2020-03-21
+     * @param state
+     * @param input
+     * @exception
+     * @return java.lang.Object
+     **/
     protected Object doInvoke(ServiceTaskStateImpl state, Object[] input) throws Throwable {
 
+        //获取容器中的bean
         Object bean = applicationContext.getBean(state.getServiceName());
 
         Method method = state.getMethod();
         if (method == null) {
             synchronized (state) {
+                //方法查找
                 method = state.getMethod();
                 if (method == null) {
                     method = findMethod(bean.getClass(), state.getServiceMethod(), state.getParameterTypes());
@@ -138,9 +155,11 @@ public class SpringBeanServiceInvoker implements ServiceInvoker, ApplicationCont
         while (true) {
 
             try {
+                //调用状态机描述语言中定义的方法并传递参数
                 return invokeMethod(bean, method, args);
             } catch (Throwable e) {
 
+                //重试逻辑
                 Retry matchedRetryConfig = matchRetryConfig(state.getRetry(), e);
                 if (matchedRetryConfig == null) {
                     throw e;
@@ -247,6 +266,7 @@ public class SpringBeanServiceInvoker implements ServiceInvoker, ApplicationCont
 
     protected Method findMethod(Class<?> clazz, String methodName, List<String> parameterTypes) {
 
+        //查找无参构造函数
         if (parameterTypes == null || parameterTypes.size() == 0) {
             return BeanUtils.findDeclaredMethodWithMinimalParameters(clazz, methodName);
         } else {
@@ -254,6 +274,7 @@ public class SpringBeanServiceInvoker implements ServiceInvoker, ApplicationCont
             for (int i = 0; i < parameterTypes.size(); i++) {
                 paramClassTypes[i] = classForName(parameterTypes.get(i));
             }
+            //有参数方法查找
             return BeanUtils.findDeclaredMethod(clazz, methodName, paramClassTypes);
         }
     }

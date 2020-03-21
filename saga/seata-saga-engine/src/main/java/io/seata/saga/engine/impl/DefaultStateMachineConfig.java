@@ -132,6 +132,7 @@ public class DefaultStateMachineConfig implements StateMachineConfig, Applicatio
             stateMachineRepository.setDefaultTenantId(defaultTenantId);
             if (resources != null) {
                 try {
+                    //注册状态机信息
                     stateMachineRepository.registryByResources(resources, defaultTenantId);
                 } catch (IOException e) {
                     LOGGER.error("Load State Language Resources failed.", e);
@@ -212,6 +213,7 @@ public class DefaultStateMachineConfig implements StateMachineConfig, Applicatio
         CustomizeBusinessProcessor customizeBusinessProcessor = new CustomizeBusinessProcessor();
 
         Map<String, ProcessHandler> processHandlerMap = new HashMap<>(1);
+        //增加STATE_LANG类型的处理器，（扩展点例如：自定义其他流程处理器）
         processHandlerMap.put(ProcessType.STATE_LANG.getCode(), stateMachineProcessHandler);
         customizeBusinessProcessor.setProcessHandlers(processHandlerMap);
 

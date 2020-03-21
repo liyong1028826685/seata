@@ -50,6 +50,16 @@ public class CustomizeBusinessProcessor implements BusinessProcessor {
         return processType;
     }
 
+    /***
+     *
+     * 查找状态机处理器
+     *
+     * @author liyong
+     * @date 23:51 2020-03-21
+     * @param context
+     * @exception
+     * @return void
+     **/
     @Override
     public void process(ProcessContext context) throws FrameworkException {
 

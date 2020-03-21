@@ -31,6 +31,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ *
+ * 接受TC发送的commit或rollback，执行本地（RM）事务
  * the default RM event handler implement, deal with the phase two events
  *
  * @author zhangsen

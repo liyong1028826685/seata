@@ -34,6 +34,9 @@ import io.seata.saga.statelang.domain.DomainConstants;
 import io.seata.saga.statelang.domain.State;
 
 /**
+ *
+ * 状态机的状态注册和处理类
+ *
  * StateMachine ProcessHandler
  *
  * @author lorne.cl
@@ -52,6 +55,7 @@ public class StateMachineProcessHandler implements ProcessHandler {
         StateHandler stateHandler = stateHandlers.get(stateType);
 
         List<StateHandlerInterceptor> interceptors = null;
+        //是否是拦截器类型，获取所有拦截器
         if (stateHandler instanceof InterceptibleStateHandler) {
             interceptors = ((InterceptibleStateHandler)stateHandler).getInterceptors();
         }
@@ -59,6 +63,7 @@ public class StateMachineProcessHandler implements ProcessHandler {
         List<StateHandlerInterceptor> executedInterceptors = null;
         Exception exception = null;
         try {
+            //执行前置拦截器
             if (interceptors != null && interceptors.size() > 0) {
                 executedInterceptors = new ArrayList<>(interceptors.size());
                 for (StateHandlerInterceptor interceptor : interceptors) {
@@ -66,14 +71,14 @@ public class StateMachineProcessHandler implements ProcessHandler {
                     interceptor.preProcess(context);
                 }
             }
-
+            //状态机状态处理
             stateHandler.process(context);
 
         } catch (Exception e) {
             exception = e;
             throw e;
         } finally {
-
+            //执行后置拦截器
             if (executedInterceptors != null && executedInterceptors.size() > 0) {
                 for (int i = executedInterceptors.size() - 1; i >= 0; i--) {
                     StateHandlerInterceptor interceptor = executedInterceptors.get(i);
@@ -84,25 +89,40 @@ public class StateMachineProcessHandler implements ProcessHandler {
 
     }
 
+    /***
+     *
+     * 注册状态机的所有状态处理器
+     *
+     * @author liyong
+     * @date 23:03 2020-03-21
+     * @param
+     * @exception
+     * @return void
+     **/
     public void initDefaultHandlers() {
         if (stateHandlers.size() == 0) {
-
             //ServiceTask
             ServiceTaskStateHandler serviceTaskStateHandler = new ServiceTaskStateHandler();
+            //ServiceTaskHandler拦截器
             List<StateHandlerInterceptor> stateHandlerInterceptors = new ArrayList<>(1);
             stateHandlerInterceptors.add(new ServiceTaskHandlerInterceptor());
             serviceTaskStateHandler.setInterceptors(stateHandlerInterceptors);
+            //ServiceTask处理器
             stateHandlers.put(DomainConstants.STATE_TYPE_SERVICE_TASK, serviceTaskStateHandler);
-
+            //CompensateSubMachine处理器
             stateHandlers.put(DomainConstants.STATE_TYPE_SUB_MACHINE_COMPENSATION, serviceTaskStateHandler);
-
+            //子状态机处理器
             SubStateMachineHandler subStateMachineHandler = new SubStateMachineHandler();
+            //增加ServiceTaskHandler拦截器
             subStateMachineHandler.setInterceptors(stateHandlerInterceptors);
             stateHandlers.put(DomainConstants.STATE_TYPE_SUB_STATE_MACHINE, subStateMachineHandler);
-
+            //Choice处理器
             stateHandlers.put(DomainConstants.STATE_TYPE_CHOICE, new ChoiceStateHandler());
+            //Succeed处理器
             stateHandlers.put(DomainConstants.STATE_TYPE_SUCCEED, new SucceedEndStateHandler());
+            //Fail处理器
             stateHandlers.put(DomainConstants.STATE_TYPE_FAIL, new FailEndStateHandler());
+            //CompensationTrigger处理器
             stateHandlers.put(DomainConstants.STATE_TYPE_COMPENSATION_TRIGGER, new CompensationTriggerStateHandler());
         }
     }

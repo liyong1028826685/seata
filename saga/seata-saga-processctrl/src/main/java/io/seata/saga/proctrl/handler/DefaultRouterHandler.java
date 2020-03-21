@@ -28,6 +28,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ *
+ * 事件驱动状态机
+ *
  * Default Router handler
  *
  * @author jin.xie
@@ -70,8 +73,9 @@ public class DefaultRouterHandler implements RouterHandler {
             if (instruction == null) {
                 LOGGER.warn("route instruction is null, process end");
             } else {
+                //设置上下文中的StateInstruction 即执行下一个状态机中的状态（事件驱动状态机）
                 context.setInstruction(instruction);
-
+                //发布状态处理事件
                 eventPublisher.publish(context);
             }
         } catch (FrameworkException e) {

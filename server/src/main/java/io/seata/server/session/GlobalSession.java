@@ -242,7 +242,7 @@ public class GlobalSession implements SessionLifecycle, SessionStorable {
 
     /***
      *
-     * 持久化session，删除当地GlobalSession中的分支事务
+     * 删除session，删除存储GlobalSession中的分支事务
      *
      * @author liyong
      * @date 11:00 2020-03-21

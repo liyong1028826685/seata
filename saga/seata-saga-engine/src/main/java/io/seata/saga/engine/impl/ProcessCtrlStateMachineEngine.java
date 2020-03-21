@@ -96,6 +96,19 @@ public class ProcessCtrlStateMachineEngine implements StateMachineEngine {
         return startInternal(stateMachineName, tenantId, businessKey, startParams, true, callback);
     }
 
+    /**
+     *
+     *
+     *
+     * @param stateMachineName
+     * @param tenantId 租户隔离
+     * @param businessKey
+     * @param startParams
+     * @param async 是否异步
+     * @param callback 异步回掉接口
+     * @return
+     * @throws EngineExecutionException
+     */
     private StateMachineInstance startInternal(String stateMachineName, String tenantId, String businessKey,
                                                Map<String, Object> startParams, boolean async, AsyncCallback callback)
         throws EngineExecutionException {
@@ -106,10 +119,12 @@ public class ProcessCtrlStateMachineEngine implements StateMachineEngine {
                 FrameworkErrorCode.AsynchronousStartDisabled);
         }
 
+        //没有配置tenantId获取默认值
         if (StringUtils.isEmpty(tenantId)) {
             tenantId = stateMachineConfig.getDefaultTenantId();
         }
 
+        //创建状态集群机实例
         StateMachineInstance instance = createMachineInstance(stateMachineName, tenantId, businessKey, startParams);
 
         ProcessContextBuilder contextBuilder = ProcessContextBuilder.create().withProcessType(ProcessType.STATE_LANG)
@@ -124,6 +139,7 @@ public class ProcessCtrlStateMachineEngine implements StateMachineEngine {
         } else {
             contextVariables = new ConcurrentHashMap<>();
         }
+        //保存函数参数到Context
         instance.setContext(contextVariables);
 
         contextBuilder.withStateMachineContextVariables(contextVariables);
@@ -140,6 +156,7 @@ public class ProcessCtrlStateMachineEngine implements StateMachineEngine {
                 stateMachineConfig.getSeqGenerator().generate(DomainConstants.SEQ_ENTITY_STATE_MACHINE_INST));
         }
 
+        //发送事件，处理器 ProcessCtrlEventConsumer
         if (async) {
             stateMachineConfig.getAsyncProcessCtrlEventPublisher().publish(processContext);
         } else {
@@ -151,6 +168,7 @@ public class ProcessCtrlStateMachineEngine implements StateMachineEngine {
 
     private StateMachineInstance createMachineInstance(String stateMachineName, String tenantId, String businessKey,
                                                        Map<String, Object> startParams) {
+        //根据状态机和租户进行查找
         StateMachine stateMachine = stateMachineConfig.getStateMachineRepository().getStateMachine(stateMachineName,
             tenantId);
         if (stateMachine == null) {

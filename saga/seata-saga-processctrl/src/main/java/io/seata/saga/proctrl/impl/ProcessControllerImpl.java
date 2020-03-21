@@ -39,9 +39,9 @@ public class ProcessControllerImpl implements ProcessController {
     public void process(ProcessContext context) throws FrameworkException {
 
         try {
-
+            //找到状态机处理器 -> StateMachineProcessHandler
             businessProcessor.process(context);
-
+            //驱动下一个状态执行，事件驱动状态机
             businessProcessor.route(context);
 
         } catch (FrameworkException fex) {

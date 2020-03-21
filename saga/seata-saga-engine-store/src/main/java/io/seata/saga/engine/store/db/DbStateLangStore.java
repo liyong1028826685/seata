@@ -47,6 +47,17 @@ public class DbStateLangStore extends AbstractStore implements StateLangStore {
             stateMachineId);
     }
 
+    /***
+     *
+     * 获取最新版本 StateMachine信息
+     *
+     * @author liyong
+     * @date 22:14 2020-03-21
+     * * @param stateMachineName
+     * @param tenantId
+     * @exception
+     * @return io.seata.saga.statelang.domain.StateMachine
+     **/
     @Override
     public StateMachine getLastVersionStateMachine(String stateMachineName, String tenantId) {
 

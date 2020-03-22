@@ -24,6 +24,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ *
+ * 状态流转控制
+ *
  * Default implementation of Process controller
  *
  * @author jin.xie
@@ -33,15 +36,16 @@ public class ProcessControllerImpl implements ProcessController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProcessControllerImpl.class);
 
+    /*** 状态机具体的实现处理器 */
     private BusinessProcessor businessProcessor;
 
     @Override
     public void process(ProcessContext context) throws FrameworkException {
 
         try {
-            //找到状态机处理器 -> StateMachineProcessHandler
+            //找到状态机处理器，并调用具体的方法执行 -> StateMachineProcessHandler
             businessProcessor.process(context);
-            //驱动下一个状态执行，事件驱动状态机
+            //驱动下一个状态执行，事件驱动状态机（发布一个事件）
             businessProcessor.route(context);
 
         } catch (FrameworkException fex) {

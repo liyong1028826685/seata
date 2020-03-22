@@ -89,8 +89,10 @@ public class DefaultStateMachineConfig implements StateMachineConfig, Applicatio
     private ApplicationContext applicationContext;
     private ThreadPoolExecutor threadPoolExecutor;
     private boolean enableAsync;
+    /*** 调用服务管理器 */
     private ServiceInvokerManager serviceInvokerManager;
 
+    /*** 定义状态机拓扑图资源文件地址 */
     private Resource[] resources = new Resource[0];
     private String charset = "UTF-8";
     private String defaultTenantId = "000001";
@@ -124,6 +126,7 @@ public class DefaultStateMachineConfig implements StateMachineConfig, Applicatio
                 new ExceptionMatchEvaluatorFactory());
         }
 
+        //状态机信息存储
         if (stateMachineRepository == null) {
             StateMachineRepositoryImpl stateMachineRepository = new StateMachineRepositoryImpl();
             stateMachineRepository.setCharset(charset);
@@ -132,7 +135,7 @@ public class DefaultStateMachineConfig implements StateMachineConfig, Applicatio
             stateMachineRepository.setDefaultTenantId(defaultTenantId);
             if (resources != null) {
                 try {
-                    //注册状态机信息
+                    //注册状态机信息：从Resources中加载状态机拓扑图资源进行状态机的存储
                     stateMachineRepository.registryByResources(resources, defaultTenantId);
                 } catch (IOException e) {
                     LOGGER.error("Load State Language Resources failed.", e);
@@ -141,6 +144,7 @@ public class DefaultStateMachineConfig implements StateMachineConfig, Applicatio
             this.stateMachineRepository = stateMachineRepository;
         }
 
+        //状态机的状态日志存储
         if (stateLogRepository == null) {
             StateLogRepositoryImpl stateLogRepositoryImpl = new StateLogRepositoryImpl();
             stateLogRepositoryImpl.setStateLogStore(stateLogStore);
@@ -152,13 +156,17 @@ public class DefaultStateMachineConfig implements StateMachineConfig, Applicatio
         }
 
         if (syncProcessCtrlEventPublisher == null) {
+            //同步事件发布器
             ProcessCtrlEventPublisher syncEventPublisher = new ProcessCtrlEventPublisher();
 
+            //处理控制器：状态机的process以及route
             ProcessControllerImpl processorController = createProcessorController(syncEventPublisher);
 
+            //事件消费者
             ProcessCtrlEventConsumer processCtrlEventConsumer = new ProcessCtrlEventConsumer();
             processCtrlEventConsumer.setProcessController(processorController);
 
+            //绑定事件发布器和消费者以及事件的总线EventBus
             DirectEventBus directEventBus = new DirectEventBus();
             syncEventPublisher.setEventBus(directEventBus);
 
@@ -168,13 +176,17 @@ public class DefaultStateMachineConfig implements StateMachineConfig, Applicatio
         }
 
         if (enableAsync && asyncProcessCtrlEventPublisher == null) {
+            //异步事件发布器
             ProcessCtrlEventPublisher asyncEventPublisher = new ProcessCtrlEventPublisher();
 
+            //处理控制器：状态机的process以及route
             ProcessControllerImpl processorController = createProcessorController(asyncEventPublisher);
 
+            //事件消费者
             ProcessCtrlEventConsumer processCtrlEventConsumer = new ProcessCtrlEventConsumer();
             processCtrlEventConsumer.setProcessController(processorController);
 
+            //绑定事件发布器和消费者以及事件的总线EventBus
             AsyncEventBus asyncEventBus = new AsyncEventBus();
             asyncEventBus.setThreadPoolExecutor(getThreadPoolExecutor());
             asyncEventPublisher.setEventBus(asyncEventBus);
@@ -187,6 +199,7 @@ public class DefaultStateMachineConfig implements StateMachineConfig, Applicatio
         if (this.serviceInvokerManager == null) {
             this.serviceInvokerManager = new ServiceInvokerManager();
 
+            //包装Spring中的Bean的调用
             SpringBeanServiceInvoker springBeanServiceInvoker = new SpringBeanServiceInvoker();
             springBeanServiceInvoker.setApplicationContext(getApplicationContext());
             springBeanServiceInvoker.setThreadPoolExecutor(threadPoolExecutor);
@@ -197,9 +210,11 @@ public class DefaultStateMachineConfig implements StateMachineConfig, Applicatio
 
     private ProcessControllerImpl createProcessorController(ProcessCtrlEventPublisher eventPublisher) throws Exception {
 
+        // 初始化所有状态对应的Router
         StateMachineProcessRouter stateMachineProcessRouter = new StateMachineProcessRouter();
         stateMachineProcessRouter.initDefaultStateRouters();
 
+        //注册状态机的所有状态对应的处理器
         StateMachineProcessHandler stateMachineProcessHandler = new StateMachineProcessHandler();
         stateMachineProcessHandler.initDefaultHandlers();
 

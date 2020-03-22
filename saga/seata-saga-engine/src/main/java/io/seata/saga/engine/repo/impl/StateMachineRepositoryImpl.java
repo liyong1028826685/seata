@@ -36,6 +36,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 
 /**
+ *
+ * 状态机信息存储：目前只实现在内存
+ *
  * StateMachineRepository Implementation
  *
  * @author lorne.cl
@@ -101,7 +104,7 @@ public class StateMachineRepositoryImpl implements StateMachineRepository {
         if (item.getValue() == null && stateLangStore != null) {
             synchronized (item) {
                 if (item.getValue() == null && stateLangStore != null) {
-                    //获取最新版本
+                    //从存储 上获取最新版本
                     StateMachine stateMachine = stateLangStore.getLastVersionStateMachine(stateMachineName, tenantId);
                     if (stateMachine != null) {
                         StateMachine parsedStatMachine = StateMachineParserFactory.getStateMachineParser().parse(
@@ -128,6 +131,16 @@ public class StateMachineRepositoryImpl implements StateMachineRepository {
         throw new UnsupportedOperationException("not implement yet");
     }
 
+    /***
+     *
+     * 状态机注册
+     *
+     * @author liyong
+     * @date 21:50 2020-03-22
+     * @param stateMachine
+     * @exception
+     * @return io.seata.saga.statelang.domain.StateMachine
+     **/
     @Override
     public StateMachine registryStateMachine(StateMachine stateMachine) {
 
@@ -135,6 +148,7 @@ public class StateMachineRepositoryImpl implements StateMachineRepository {
         String tenantId = stateMachine.getTenantId();
 
         if (stateLangStore != null) {
+            //获取存储中最新的状态机信息
             StateMachine oldStateMachine = stateLangStore.getLastVersionStateMachine(stateMachineName, tenantId);
 
             if (oldStateMachine != null) {
@@ -146,6 +160,7 @@ public class StateMachineRepositoryImpl implements StateMachineRepository {
                 } catch (UnsupportedEncodingException e) {
                     LOGGER.error(e.getMessage(), e);
                 }
+                //数组每一个位置进行比较 是否考虑对数据进行Md5比较 Fixme
                 if (Arrays.equals(bytesContent, oldBytesContent) && stateMachine.getVersion() != null && stateMachine
                     .getVersion().equals(oldStateMachine.getVersion())) {
 
@@ -160,6 +175,7 @@ public class StateMachineRepositoryImpl implements StateMachineRepository {
                     return stateMachine;
                 }
             }
+            //存储中不存在
             stateMachine.setId(seqGenerator.generate(DomainConstants.SEQ_ENTITY_STATE_MACHINE));
             stateMachine.setGmtCreate(new Date());
             stateLangStore.storeStateMachine(stateMachine);
@@ -175,6 +191,17 @@ public class StateMachineRepositoryImpl implements StateMachineRepository {
         return stateMachine;
     }
 
+    /***
+     *
+     * 从Resources中加载状态机拓扑图资源进行状态机的存储
+     *
+     * @author liyong
+     * @date 21:49 2020-03-22
+     * @param resources
+     * @param tenantId
+     * @exception
+     * @return void
+     **/
     @Override
     public void registryByResources(Resource[] resources, String tenantId) throws IOException {
         if (resources != null) {
@@ -186,6 +213,7 @@ public class StateMachineRepositoryImpl implements StateMachineRepository {
                     if (StringUtils.isBlank(stateMachine.getTenantId())) {
                         stateMachine.setTenantId(tenantId);
                     }
+                    //注册状态机信息
                     registryStateMachine(stateMachine);
                     if (LOGGER.isDebugEnabled()) {
                         LOGGER.debug("===== StateMachine Loaded: \n{}", json);

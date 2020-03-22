@@ -21,6 +21,9 @@ import io.seata.saga.proctrl.eventing.EventBus;
 import io.seata.saga.proctrl.eventing.EventPublisher;
 
 /**
+ *
+ * ProcessContext事件发布者
+ *
  * ProcessCtrl Event Pulisher
  *
  * @author lorne.cl

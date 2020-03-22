@@ -51,6 +51,16 @@ public class StateInstruction implements Instruction {
         this.tenantId = tenantId;
     }
 
+    /***
+     *
+     * 获取状态机中第一个状态
+     *
+     * @author liyong
+     * @date 13:45 2020-03-22
+     * @param context
+     * @exception
+     * @return io.seata.saga.statelang.domain.State
+     **/
     public State getState(ProcessContext context) {
 
         if (getTemporaryState() != null) {
@@ -68,6 +78,7 @@ public class StateInstruction implements Instruction {
 
         StateMachineConfig stateMachineConfig = (StateMachineConfig)context.getVariable(
             DomainConstants.VAR_NAME_STATEMACHINE_CONFIG);
+        //查找状态机信息
         StateMachine stateMachine = stateMachineConfig.getStateMachineRepository().getStateMachine(stateMachineName,
             tenantId);
         if (stateMachine == null) {
@@ -77,6 +88,7 @@ public class StateInstruction implements Instruction {
 
         if (StringUtils.isEmpty(stateName)) {
 
+            //状态机开始状态
             stateName = stateMachine.getStartState();
             setStateName(stateName);
         }

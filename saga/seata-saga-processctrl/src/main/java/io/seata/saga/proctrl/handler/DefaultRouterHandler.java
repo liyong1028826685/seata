@@ -29,7 +29,9 @@ import org.slf4j.LoggerFactory;
 
 /**
  *
- * 事件驱动状态机
+ * 事件驱动状态机：用于产生`Instruction`并发送消息
+ *
+ * {@link io.seata.saga.engine.pcext.StateInstruction}用于指定下一个执行的状态
  *
  * Default Router handler
  *

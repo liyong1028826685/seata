@@ -21,20 +21,44 @@ import io.seata.saga.proctrl.ProcessController;
 import io.seata.saga.proctrl.eventing.EventConsumer;
 
 /**
+ *
+ * ProcessContext事件处理器（消费者）
+ *
  * ProcessCtrl Event Consumer
  *
  * @author lorne.cl
  */
 public class ProcessCtrlEventConsumer implements EventConsumer<ProcessContext> {
 
+    /*** 状态流程控制 */
     private ProcessController processController;
 
+    /***
+     *
+     * 接受ProcessContext事件并交个状态处理控制具体实现
+     *
+     * @author liyong
+     * @date 20:14 2020-03-22
+     * @param event
+     * @exception
+     * @return void
+     **/
     @Override
     public void process(ProcessContext event) throws FrameworkException {
 
         processController.process(event);
     }
 
+    /***
+     *
+     * 判断事件是否可以被接受
+     *
+     * @author liyong
+     * @date 20:15 2020-03-22
+     * @param clazz
+     * @exception
+     * @return boolean
+     **/
     @Override
     public boolean accept(Class<ProcessContext> clazz) {
         return ProcessContext.class.isAssignableFrom(clazz);

@@ -38,8 +38,9 @@ public class CustomizeBusinessProcessor implements BusinessProcessor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProcessControllerImpl.class);
 
+    /** key->状态机类型，value->对应的状态机处理器 */
     private Map<String, ProcessHandler> processHandlers;
-
+    /** key->状态机类型，value->对应的状态机路由器 */
     private Map<String, RouterHandler> routerHandlers;
 
     public static ProcessType matchProcessType(ProcessContext context) {

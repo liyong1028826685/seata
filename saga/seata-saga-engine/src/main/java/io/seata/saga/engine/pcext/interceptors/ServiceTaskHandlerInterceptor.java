@@ -89,6 +89,18 @@ public class ServiceTaskHandlerInterceptor implements StateHandlerInterceptor {
         return inputValues;
     }
 
+    /***
+     *
+     * 输出参数列表
+     *
+     * @author liyong
+     * @date 20:06 2020-03-22
+     * @param expressionFactoryManager
+     * @param serviceTaskState
+     * @param variablesFrom
+     * @exception
+     * @return java.util.Map<java.lang.String,java.lang.Object>
+     **/
     public static Map<String, Object> createOutputParams(ExpressionFactoryManager expressionFactoryManager,
                                                          ServiceTaskStateImpl serviceTaskState, Object variablesFrom) {
 
@@ -198,16 +210,29 @@ public class ServiceTaskHandlerInterceptor implements StateHandlerInterceptor {
         return valueExpression;
     }
 
+    /***
+     *
+     * 前置处理器：主要处理输入参数
+     *
+     * @author liyong
+     * @date 13:37 2020-03-22
+     * @param context
+     * @exception
+     * @return void
+     **/
     @Override
     public void preProcess(ProcessContext context) throws EngineExecutionException {
 
         StateInstruction instruction = context.getInstruction(StateInstruction.class);
 
+        //状态机实例
         StateMachineInstance stateMachineInstance = (StateMachineInstance)context.getVariable(
             DomainConstants.VAR_NAME_STATEMACHINE_INST);
+        //状态机配置
         StateMachineConfig stateMachineConfig = (StateMachineConfig)context.getVariable(
             DomainConstants.VAR_NAME_STATEMACHINE_CONFIG);
 
+        //判断是否超时
         if (EngineUtils.isTimeout(stateMachineInstance.getGmtUpdated(), stateMachineConfig.getTransOperationTimeout())) {
             String message = "Saga Transaction [stateMachineInstanceId:" + stateMachineInstance.getId()
                     + "] has timed out, stop execution now.";
@@ -217,6 +242,7 @@ public class ServiceTaskHandlerInterceptor implements StateHandlerInterceptor {
             EngineExecutionException exception = ExceptionUtils.createEngineExecutionException(null,
                     FrameworkErrorCode.StateMachineExecutionTimeout, message, stateMachineInstance, instruction.getStateName());
 
+            //失败处理
             EngineUtils.failStateMachine(context, exception);
 
             throw exception;
@@ -224,12 +250,14 @@ public class ServiceTaskHandlerInterceptor implements StateHandlerInterceptor {
 
         StateInstanceImpl stateInstance = new StateInstanceImpl();
 
+        //获取上下文中参数值
         Map<String, Object> contextVariables = (Map<String, Object>)context.getVariable(
             DomainConstants.VAR_NAME_STATEMACHINE_CONTEXT);
         ServiceTaskStateImpl state = (ServiceTaskStateImpl)instruction.getState(context);
         List<Object> serviceInputParams = null;
         if (contextVariables != null) {
             try {
+                //获取输入参数
                 serviceInputParams = createInputParams(stateMachineConfig.getExpressionFactoryManager(), stateInstance,
                     state, contextVariables);
             } catch (Exception e) {
@@ -271,13 +299,16 @@ public class ServiceTaskHandlerInterceptor implements StateHandlerInterceptor {
         stateInstance.setServiceMethod(state.getServiceMethod());
         stateInstance.setServiceType(state.getServiceType());
 
+        //状态为补偿state
         Object isForCompensation = state.isForCompensation();
         if (isForCompensation != null && (Boolean)isForCompensation) {
             CompensationHolder compensationHolder = CompensationHolder.getCurrent(context, true);
             StateInstance stateToBeCompensated = compensationHolder.getStatesNeedCompensation().get(state.getName());
+            //需要补偿的state
             if (stateToBeCompensated != null) {
-
+                //stateInstance为stateToBeCompensated的补偿状态
                 stateToBeCompensated.setCompensationState(stateInstance);
+                //设置stateInstance是为stateToBeCompensated的补偿state
                 stateInstance.setStateIdCompensatedFor(stateToBeCompensated.getId());
             } else {
                 LOGGER.error("Compensation State[{}] has no state to compensate, maybe this is a bug.",
@@ -304,8 +335,10 @@ public class ServiceTaskHandlerInterceptor implements StateHandlerInterceptor {
             }
         }
 
+        //设置输入参数
         stateInstance.setInputParams(serviceInputParams);
 
+        //持久化状态实例
         if (stateMachineInstance.getStateMachine().isPersist() && state.isPersist()
             && stateMachineConfig.getStateLogStore() != null) {
 
@@ -332,6 +365,17 @@ public class ServiceTaskHandlerInterceptor implements StateHandlerInterceptor {
         ((HierarchicalProcessContext)context).setVariableLocally(DomainConstants.VAR_NAME_STATE_INST, stateInstance);
     }
 
+    /***
+     *
+     * 后置处理器
+     *
+     * @author liyong
+     * @date 20:08 2020-03-22
+     * @param context
+     * @param exp
+     * @exception
+     * @return void
+     **/
     @Override
     public void postProcess(ProcessContext context, Exception exp) throws EngineExecutionException {
 
@@ -371,6 +415,7 @@ public class ServiceTaskHandlerInterceptor implements StateHandlerInterceptor {
         Object serviceOutputParams = context.getVariable(DomainConstants.VAR_NAME_OUTPUT_PARAMS);
         if (serviceOutputParams != null) {
             try {
+                //结果输出到上下文中
                 Map<String, Object> outputVariablesToContext = createOutputParams(
                     stateMachineConfig.getExpressionFactoryManager(), state, serviceOutputParams);
                 if (outputVariablesToContext != null && outputVariablesToContext.size() > 0) {

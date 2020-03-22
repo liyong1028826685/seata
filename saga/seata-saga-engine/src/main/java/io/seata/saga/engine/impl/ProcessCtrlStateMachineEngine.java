@@ -113,6 +113,7 @@ public class ProcessCtrlStateMachineEngine implements StateMachineEngine {
                                                Map<String, Object> startParams, boolean async, AsyncCallback callback)
         throws EngineExecutionException {
 
+        //判断是否激活异步
         if (async && !stateMachineConfig.isEnableAsync()) {
             throw new EngineExecutionException(
                 "Asynchronous start is disabled. please set StateMachineConfig.enableAsync=true first.",
@@ -124,7 +125,7 @@ public class ProcessCtrlStateMachineEngine implements StateMachineEngine {
             tenantId = stateMachineConfig.getDefaultTenantId();
         }
 
-        //创建状态集群机实例
+        //创建状态机实例
         StateMachineInstance instance = createMachineInstance(stateMachineName, tenantId, businessKey, startParams);
 
         ProcessContextBuilder contextBuilder = ProcessContextBuilder.create().withProcessType(ProcessType.STATE_LANG)
@@ -139,24 +140,28 @@ public class ProcessCtrlStateMachineEngine implements StateMachineEngine {
         } else {
             contextVariables = new ConcurrentHashMap<>();
         }
-        //保存函数参数到Context
+        //保存外部参数到Context
         instance.setContext(contextVariables);
 
         contextBuilder.withStateMachineContextVariables(contextVariables);
 
+        //是否异步执行
         contextBuilder.withIsAsyncExecution(async);
 
+        //构建处理上下文
         ProcessContext processContext = contextBuilder.build();
 
+        //持久化
         if (instance.getStateMachine().isPersist() && stateMachineConfig.getStateLogStore() != null) {
             stateMachineConfig.getStateLogStore().recordStateMachineStarted(instance, processContext);
         }
+        //StateMachineInstance生成一个id
         if (StringUtils.isEmpty(instance.getId())) {
             instance.setId(
                 stateMachineConfig.getSeqGenerator().generate(DomainConstants.SEQ_ENTITY_STATE_MACHINE_INST));
         }
 
-        //发送事件，处理器 ProcessCtrlEventConsumer
+        //发送事件开始执行定义的状态机拓扑图，处理器 ProcessCtrlEventConsumer
         if (async) {
             stateMachineConfig.getAsyncProcessCtrlEventPublisher().publish(processContext);
         } else {
@@ -176,26 +181,31 @@ public class ProcessCtrlStateMachineEngine implements StateMachineEngine {
                 FrameworkErrorCode.ObjectNotExists);
         }
 
+        //状态机的实例
         StateMachineInstanceImpl inst = new StateMachineInstanceImpl();
         inst.setStateMachine(stateMachine);
         inst.setMachineId(stateMachine.getId());
         inst.setTenantId(tenantId);
         inst.setBusinessKey(businessKey);
-
         inst.setStartParams(startParams);
         if (StringUtils.hasText(businessKey) && startParams != null) {
+            //businessKey放入到startParams
             startParams.put(DomainConstants.VAR_NAME_BUSINESSKEY, businessKey);
         }
 
         if (StringUtils.hasText((String)startParams.get(DomainConstants.VAR_NAME_PARENT_ID))) {
+            //获取startParams中的parentid并且设置到状态机的实例中
             inst.setParentId((String)startParams.get(DomainConstants.VAR_NAME_PARENT_ID));
+            //清除startParams中parentId，不进行向后传递，只有第一个能拿到parentId
             startParams.remove(DomainConstants.VAR_NAME_PARENT_ID);
         }
 
+        //设置状态机实例状态为Running
         inst.setStatus(ExecutionStatus.RU);
 
+        //设置状态机正在运行
         inst.setRunning(true);
-
+        //设置状态机实例开始时间
         inst.setGmtStarted(new Date());
         inst.setGmtUpdated(inst.getGmtStarted());
 

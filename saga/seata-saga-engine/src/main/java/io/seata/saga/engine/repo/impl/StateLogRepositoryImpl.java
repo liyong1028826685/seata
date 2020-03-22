@@ -23,6 +23,9 @@ import io.seata.saga.statelang.domain.StateInstance;
 import io.seata.saga.statelang.domain.StateMachineInstance;
 
 /**
+ *
+ *
+ * 状态机的状态日志存储：DB实现
  * State Log Repository
  *
  * @author lorne.cl

@@ -52,6 +52,7 @@ public class StateMachineProcessHandler implements ProcessHandler {
         StateInstruction instruction = context.getInstruction(StateInstruction.class);
         State state = instruction.getState(context);
         String stateType = state.getType();
+        //获取状态处理器
         StateHandler stateHandler = stateHandlers.get(stateType);
 
         List<StateHandlerInterceptor> interceptors = null;
@@ -91,7 +92,7 @@ public class StateMachineProcessHandler implements ProcessHandler {
 
     /***
      *
-     * 注册状态机的所有状态处理器
+     * 注册状态机的所有状态对应的处理器
      *
      * @author liyong
      * @date 23:03 2020-03-21

@@ -95,6 +95,8 @@ public class EngineUtils {
     }
 
     /**
+     *
+     * 执行失败相关设置
      * fail StateMachine
      *
      * @param context
@@ -126,6 +128,7 @@ public class EngineUtils {
 
         AsyncCallback callback = (AsyncCallback)context.getVariable(DomainConstants.VAR_NAME_ASYNC_CALLBACK);
         if (callback != null) {
+            //异步情况，失败回掉onError方法
             callback.onError(context, stateMachineInstance, exp);
         }
     }

@@ -104,7 +104,16 @@ public class StateMachineProcessRouter implements ProcessRouter {
 
         return instruction;
     }
-
+    /***
+     *
+     * 初始化所有状态对应的Router
+     *
+     * @author liyong
+     * @date 21:41 2020-03-22
+     * @param
+     * @exception
+     * @return void
+     **/
     public void initDefaultStateRouters() {
         if (this.stateRouters.size() == 0) {
             TaskStateRouter taskStateRouter = new TaskStateRouter();
@@ -114,6 +123,7 @@ public class StateMachineProcessRouter implements ProcessRouter {
             this.stateRouters.put(DomainConstants.STATE_TYPE_SUB_STATE_MACHINE, taskStateRouter);
             this.stateRouters.put(DomainConstants.STATE_TYPE_SUB_MACHINE_COMPENSATION, taskStateRouter);
 
+            //EndStateRouter添加拦截器
             EndStateRouter endStateRouter = new EndStateRouter();
             List<StateRouterInterceptor> stateRouterInterceptors = new ArrayList<>(1);
             stateRouterInterceptors.add(new EndStateRouterInterceptor());

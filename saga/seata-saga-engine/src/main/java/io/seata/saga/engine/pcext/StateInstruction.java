@@ -40,6 +40,7 @@ public class StateInstruction implements Instruction {
 
     /**
      * Temporary state node for running temporary nodes in the state machine
+     * 例如：补偿节点
      */
     private State temporaryState;
 
@@ -86,9 +87,10 @@ public class StateInstruction implements Instruction {
                 FrameworkErrorCode.ObjectNotExists);
         }
 
+        //如果没有设置stateName默认获取第一个状态名称
         if (StringUtils.isEmpty(stateName)) {
 
-            //状态机开始状态
+            //状态机开始状态，第一个状态
             stateName = stateMachine.getStartState();
             setStateName(stateName);
         }

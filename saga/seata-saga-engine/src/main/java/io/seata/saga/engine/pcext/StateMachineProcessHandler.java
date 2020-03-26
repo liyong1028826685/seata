@@ -69,6 +69,7 @@ public class StateMachineProcessHandler implements ProcessHandler {
                 executedInterceptors = new ArrayList<>(interceptors.size());
                 for (StateHandlerInterceptor interceptor : interceptors) {
                     executedInterceptors.add(interceptor);
+                    //ServiceTaskState前置输入参数处理
                     interceptor.preProcess(context);
                 }
             }

@@ -149,17 +149,20 @@ public class ServiceTaskStateHandler implements StateHandler, InterceptibleState
                 StateMachineConfig stateMachineConfig = (StateMachineConfig) context.getVariable(
                         DomainConstants.VAR_NAME_STATEMACHINE_CONFIG);
 
+                //对容器中bean进行包装
                 ServiceInvoker serviceInvoker = stateMachineConfig.getServiceInvokerManager().getServiceInvoker(
                         state.getServiceType());
                 if (serviceInvoker == null) {
                     throw new EngineExecutionException("No such ServiceInvoker[" + state.getServiceType() + "]",
                             FrameworkErrorCode.ObjectNotExists);
                 }
+                //设置容器上下文
                 if (serviceInvoker instanceof ApplicationContextAware) {
                     ((ApplicationContextAware) serviceInvoker).setApplicationContext(
                             stateMachineConfig.getApplicationContext());
                 }
 
+                //执行方法调用
                 result = serviceInvoker.invoke(state, input.toArray());
             }
 
@@ -169,6 +172,7 @@ public class ServiceTaskStateHandler implements StateHandler, InterceptibleState
             }
 
             if (result != null) {
+                //state执行结果设置到output中去x
                 stateInstance.setOutputParams(result);
                 ((HierarchicalProcessContext) context).setVariableLocally(DomainConstants.VAR_NAME_OUTPUT_PARAMS,
                         result);

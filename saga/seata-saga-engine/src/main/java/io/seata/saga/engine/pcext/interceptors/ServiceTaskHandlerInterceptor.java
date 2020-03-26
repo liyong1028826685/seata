@@ -248,6 +248,7 @@ public class ServiceTaskHandlerInterceptor implements StateHandlerInterceptor {
             throw exception;
         }
 
+        //执行的状态实例
         StateInstanceImpl stateInstance = new StateInstanceImpl();
 
         //获取上下文中参数值
@@ -274,6 +275,7 @@ public class ServiceTaskHandlerInterceptor implements StateHandlerInterceptor {
             }
         }
 
+        //获取的输入参数放入到上下文中
         ((HierarchicalProcessContext)context).setVariableLocally(DomainConstants.VAR_NAME_INPUT_PARAMS,
             serviceInputParams);
 
@@ -299,8 +301,9 @@ public class ServiceTaskHandlerInterceptor implements StateHandlerInterceptor {
         stateInstance.setServiceMethod(state.getServiceMethod());
         stateInstance.setServiceType(state.getServiceType());
 
-        //状态为补偿state
+        //状态是否为补偿state
         Object isForCompensation = state.isForCompensation();
+        //是否需要补偿
         if (isForCompensation != null && (Boolean)isForCompensation) {
             CompensationHolder compensationHolder = CompensationHolder.getCurrent(context, true);
             StateInstance stateToBeCompensated = compensationHolder.getStatesNeedCompensation().get(state.getName());

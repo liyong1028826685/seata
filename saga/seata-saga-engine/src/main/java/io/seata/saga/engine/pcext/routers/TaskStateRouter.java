@@ -120,36 +120,43 @@ public class TaskStateRouter implements StateRouter {
             }
         }
 
+        //需要补偿的节点
         Stack<StateInstance> stateStackToBeCompensated = CompensationHolder.getCurrent(context, true)
             .getStateStackNeedCompensation();
         if (!stateStackToBeCompensated.isEmpty()) {
-
+            //获取栈顶，方向执行，按照原来的状态机执行方式：process、route
             StateInstance stateToBeCompensated = stateStackToBeCompensated.pop();
 
             StateMachine stateMachine = (StateMachine)context.getVariable(DomainConstants.VAR_NAME_STATEMACHINE);
             State state = stateMachine.getState(stateToBeCompensated.getName());
             if (state != null && state instanceof AbstractTaskState) {
 
+                //查找补偿节点
                 AbstractTaskState taskState = (AbstractTaskState)state;
 
                 StateInstruction instruction = context.getInstruction(StateInstruction.class);
 
                 State compensateState = null;
+                //指定了 补偿节点
                 String compensateStateName = taskState.getCompensateState();
                 if (StringUtils.hasLength(compensateStateName)) {
                     compensateState = stateMachine.getState(compensateStateName);
                 }
 
+                //未指定补偿节点，并且 是一个子状态 机
                 if (compensateState == null && (taskState instanceof SubStateMachine)) {
                     compensateState = ((SubStateMachine)taskState).getCompensateStateObject();
+                    //设置为临时状态节点
                     instruction.setTemporaryState(compensateState);
                 }
 
+                //没有补偿直接结束
                 if (compensateState == null) {
                     EngineUtils.endStateMachine(context);
                     return null;
                 }
 
+                //设置第一个执行的状态
                 instruction.setStateName(compensateState.getName());
 
                 CompensationHolder.getCurrent(context, true).addToBeCompensatedState(compensateState.getName(),
@@ -170,12 +177,14 @@ public class TaskStateRouter implements StateRouter {
 
         context.removeVariable(DomainConstants.VAR_NAME_CURRENT_COMPEN_TRIGGER_STATE);
 
+        //如果Next节点为空结束
         String compensationTriggerStateNext = compensationTriggerState.getNext();
         if (StringUtils.isEmpty(compensationTriggerStateNext)) {
             EngineUtils.endStateMachine(context);
             return null;
         }
 
+        //没有指定  补偿方法直接执行指定的Next节点状态
         StateInstruction instruction = context.getInstruction(StateInstruction.class);
         instruction.setStateName(compensationTriggerStateNext);
         return instruction;

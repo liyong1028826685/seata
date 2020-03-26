@@ -32,6 +32,7 @@ public class ExpressionEvaluatorFactory implements EvaluatorFactory {
     public Evaluator createEvaluator(String expressionString) {
 
         ExpressionEvaluator evaluator = new ExpressionEvaluator();
+        //SpringELExpressionFactory
         evaluator.setExpression(this.expressionFactory.createExpression(expressionString));
         return evaluator;
     }

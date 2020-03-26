@@ -32,6 +32,9 @@ import io.seata.saga.statelang.domain.DomainConstants;
 import io.seata.saga.statelang.domain.impl.ChoiceStateImpl;
 
 /**
+ *
+ * 选择逻辑处理器
+ *
  * ChoiceState Handler
  *
  * @author lorne.cl
@@ -50,13 +53,16 @@ public class ChoiceStateHandler implements StateHandler {
                 choiceEvaluators = choiceState.getChoiceEvaluators();
                 if (choiceEvaluators == null) {
 
+                    //获取图谱图中的Choices配置
                     List<ChoiceState.Choice> choices = choiceState.getChoices();
                     if (choices == null) {
                         choiceEvaluators = new LinkedHashMap<>(0);
                     } else {
                         choiceEvaluators = new LinkedHashMap<>(choices.size());
                         for (ChoiceState.Choice choice : choices) {
+                            //获取表达式对应的Evaluator ExpressionEvaluatorFactory
                             Evaluator evaluator = getEvaluatorFactory(context).createEvaluator(choice.getExpression());
+                            //每个Evaluator对应者一个State
                             choiceEvaluators.put(evaluator, choice.getNext());
                         }
                     }
@@ -65,14 +71,18 @@ public class ChoiceStateHandler implements StateHandler {
             }
         }
 
+        //进行选择状态的匹配
         for (Object choiceEvaluatorObj : choiceEvaluators.keySet()) {
             Evaluator evaluator = (Evaluator)choiceEvaluatorObj;
+            //评估器对上下文变量进行评估计算是否满足表达式
             if (evaluator.evaluate(context.getVariables())) {
+                //设置当前选择的state节点
                 context.setVariable(DomainConstants.VAR_NAME_CURRENT_CHOICE, choiceEvaluators.get(evaluator));
                 return;
             }
         }
 
+        //没有满足表达式条件的默认选择
         context.setVariable(DomainConstants.VAR_NAME_CURRENT_CHOICE, choiceState.getDefault());
     }
 

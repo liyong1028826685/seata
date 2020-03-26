@@ -76,6 +76,17 @@ public class CompensationHolder {
         return compensationholder;
     }
 
+    /***
+     *
+     * 查找需要补偿的节点
+     *
+     * @author liyong
+     * @date 22:05 2020-03-24
+     * @param context
+     * @param stateInstanceList
+     * @exception
+     * @return java.util.List<io.seata.saga.statelang.domain.StateInstance>
+     **/
     public static List<StateInstance> findStateInstListToBeCompensated(ProcessContext context,
                                                                        List<StateInstance> stateInstanceList) {
         List<StateInstance> stateListToBeCompensated = null;

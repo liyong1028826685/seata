@@ -35,13 +35,16 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
  */
 public class SpringELExpressionFactory implements ExpressionFactory, ApplicationContextAware {
 
+    /*** spring中的El表达式解析器 */
     ExpressionParser parser = new SpelExpressionParser();
     ApplicationContext applicationContext;
 
     @Override
     public Expression createExpression(String expression) {
+        //解析字符串得到Expression表达式
         org.springframework.expression.Expression defaultExpression = parser.parseExpression(expression);
         EvaluationContext evaluationContext = ((SpelExpression)defaultExpression).getEvaluationContext();
+        //设置表达式解析解析从spring容器中获取值
         ((StandardEvaluationContext)evaluationContext).setBeanResolver(new AppContextBeanResolver());
         return new SpringELExpression(defaultExpression);
     }

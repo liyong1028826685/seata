@@ -51,6 +51,7 @@ public class CompensationTriggerStateHandler implements StateHandler {
         if (stateMachineInstance != null) {
             stateInstanceList = stateMachineInstance.getStateList();
         } else if (stateMachineConfig.getStateLogStore() != null) {
+            //Fixme stateMachineInstance == null报错
             stateInstanceList = stateMachineConfig.getStateLogStore().queryStateInstanceListByMachineInstanceId(
                 stateMachineInstance.getId());
         }
@@ -59,7 +60,7 @@ public class CompensationTriggerStateHandler implements StateHandler {
             stateInstanceList);
         if (stateListToBeCompensated != null && stateListToBeCompensated.size() > 0) {
 
-            //Clear exceptions that occur during forward execution
+            //Clear exceptions that occur during forward execution 清除向前执行时发生的异常，后面需要进行补偿
             context.removeVariable(DomainConstants.VAR_NAME_CURRENT_EXCEPTION);
 
             Stack<StateInstance> stateStackToBeCompensated = CompensationHolder.getCurrent(context, true)

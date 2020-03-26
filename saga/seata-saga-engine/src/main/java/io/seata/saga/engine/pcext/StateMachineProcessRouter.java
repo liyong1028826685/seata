@@ -57,6 +57,7 @@ public class StateMachineProcessRouter implements ProcessRouter {
                 DomainConstants.VAR_NAME_STATEMACHINE_CONFIG);
             StateMachine stateMachine = stateMachineConfig.getStateMachineRepository().getStateMachine(
                 stateInstruction.getStateMachineName(), stateInstruction.getTenantId());
+            //在状态机拓扑图中查找名字为指定的stateName的State状态
             state = stateMachine.getStates().get(stateInstruction.getStateName());
         }
 

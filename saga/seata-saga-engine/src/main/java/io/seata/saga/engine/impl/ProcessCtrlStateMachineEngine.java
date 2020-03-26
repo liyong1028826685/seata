@@ -48,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 /**
+ * 状态机引擎：加载状态机拓扑图定义，持久化状态机定义
  * ProcessCtrl-based state machine engine
  *
  * @author lorne.cl
@@ -128,10 +129,17 @@ public class ProcessCtrlStateMachineEngine implements StateMachineEngine {
         //创建状态机实例
         StateMachineInstance instance = createMachineInstance(stateMachineName, tenantId, businessKey, startParams);
 
-        ProcessContextBuilder contextBuilder = ProcessContextBuilder.create().withProcessType(ProcessType.STATE_LANG)
-            .withOperationName(DomainConstants.OPERATION_NAME_START).withAsyncCallback(callback).withInstruction(
-                new StateInstruction(stateMachineName, tenantId)).withStateMachineInstance(instance)
-            .withStateMachineConfig(getStateMachineConfig()).withStateMachineEngine(this);
+        ProcessContextBuilder contextBuilder = ProcessContextBuilder.create()
+                //设置状态机实现语言类型
+                .withProcessType(ProcessType.STATE_LANG)
+                .withOperationName(DomainConstants.OPERATION_NAME_START)
+                //设置异步执行的回掉
+                .withAsyncCallback(callback)
+                //设置执行状态指令
+                .withInstruction(new StateInstruction(stateMachineName, tenantId))
+                .withStateMachineInstance(instance)
+                .withStateMachineConfig(getStateMachineConfig())
+                .withStateMachineEngine(this);
 
         Map<String, Object> contextVariables;
         if (startParams != null) {

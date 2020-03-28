@@ -30,6 +30,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ *
+ * RM于TC交互消息监听器
+ *
  * The type Rm message listener.
  *
  * @author slievrly
@@ -83,6 +86,7 @@ public class RmMessageListener implements ClientMessageListener {
         } else if (msg instanceof BranchRollbackRequest) {
             handleBranchRollback(request, serverAddress, (BranchRollbackRequest)msg);
         } else if (msg instanceof UndoLogDeleteRequest) {
+            //AT模式
             handleUndoLogDelete((UndoLogDeleteRequest) msg);
         }
     }

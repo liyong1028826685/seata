@@ -35,6 +35,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
+ *
+ * 客户端池管理器
  * Netty client pool manager.
  *
  * @author slievrly
@@ -49,7 +51,8 @@ class NettyClientChannelManager {
     private final ConcurrentMap<String, NettyPoolKey> poolKeyMap = new ConcurrentHashMap<>();
     
     private final ConcurrentMap<String, Channel> channels = new ConcurrentHashMap<>();
-    
+
+    //客户端连接池 使用common-pool
     private final GenericKeyedObjectPool<NettyPoolKey, Channel> nettyClientKeyPool;
     
     private Function<String, NettyPoolKey> poolKeyFunction;
@@ -99,6 +102,7 @@ class NettyClientChannelManager {
             LOGGER.info("will connect to " + serverAddress);
         }
         channelLocks.putIfAbsent(serverAddress, new Object());
+        //没有存活的Channel重新连接
         synchronized (channelLocks.get(serverAddress)) {
             return doConnect(serverAddress);
         }
@@ -159,12 +163,14 @@ class NettyClientChannelManager {
     void reconnect(String transactionServiceGroup) {
         List<String> availList = null;
         try {
+            //获取服务地址
             availList = getAvailServerList(transactionServiceGroup);
         } catch (Exception e) {
             LOGGER.error("Failed to get available servers: {}", e.getMessage(), e);
             return;
         }
         if (CollectionUtils.isEmpty(availList)) {
+            //没有可用服务列表
             String serviceGroup = RegistryFactory.getInstance()
                                                  .getServiceGroup(transactionServiceGroup);
             LOGGER.error("no available service '{}' found, please make sure registry config correct", serviceGroup);
@@ -172,6 +178,7 @@ class NettyClientChannelManager {
         }
         for (String serverAddress : availList) {
             try {
+                //获取可用的Channel
                 acquireChannel(serverAddress);
             } catch (Exception e) {
                 LOGGER.error("{} can not connect to {} cause:{}",FrameworkErrorCode.NetConnect.getErrCode(), serverAddress, e.getMessage(), e);
@@ -189,7 +196,17 @@ class NettyClientChannelManager {
         }
         channels.put(serverAddress, channel);
     }
-    
+
+    /***
+     *
+     * 从对象池中获取channel对象
+     *
+     * @author liyong
+     * @date 23:25 2020-03-28
+     * @param serverAddress
+     * @exception
+     * @return io.netty.channel.Channel
+     **/
     private Channel doConnect(String serverAddress) {
         Channel channelToServer = channels.get(serverAddress);
         if (channelToServer != null && channelToServer.isActive()) {
@@ -197,12 +214,14 @@ class NettyClientChannelManager {
         }
         Channel channelFromPool;
         try {
+            //产生一个NettyPoolKey
             NettyPoolKey currentPoolKey = poolKeyFunction.apply(serverAddress);
             NettyPoolKey previousPoolKey = poolKeyMap.putIfAbsent(serverAddress, currentPoolKey);
             if (null != previousPoolKey && previousPoolKey.getMessage() instanceof RegisterRMRequest) {
                 RegisterRMRequest registerRMRequest = (RegisterRMRequest) currentPoolKey.getMessage();
                 ((RegisterRMRequest) previousPoolKey.getMessage()).setResourceIds(registerRMRequest.getResourceIds());
             }
+            //从池中获取一个对象
             channelFromPool = nettyClientKeyPool.borrowObject(poolKeyMap.get(serverAddress));
             channels.put(serverAddress, channelFromPool);
         } catch (Exception exx) {
@@ -213,6 +232,7 @@ class NettyClientChannelManager {
     }
     
     private List<String> getAvailServerList(String transactionServiceGroup) throws Exception {
+        //从注册中心获取服务地址
         List<InetSocketAddress> availInetSocketAddressList = RegistryFactory.getInstance()
                                                                             .lookup(transactionServiceGroup);
         if (CollectionUtils.isEmpty(availInetSocketAddressList)) {
@@ -223,7 +243,18 @@ class NettyClientChannelManager {
                                          .map(NetUtil::toStringAddress)
                                          .collect(Collectors.toList());
     }
-    
+
+    /***
+     *
+     * 查找存活的通道
+     *
+     * @author liyong
+     * @date 00:03 2020-03-27
+     * @param rmChannel
+     * @param serverAddress
+     * @exception
+     * @return io.netty.channel.Channel
+     **/
     private Channel getExistAliveChannel(Channel rmChannel, String serverAddress) {
         if (rmChannel.isActive()) {
             return rmChannel;
@@ -240,6 +271,7 @@ class NettyClientChannelManager {
                     return rmChannel;
                 }
             }
+            //达到最大等待次数，则关闭通道
             if (i == NettyClientConfig.getMaxCheckAliveRetry()) {
                 LOGGER.warn("channel {} is not active after long wait, close it.", rmChannel);
                 releaseChannel(rmChannel, serverAddress);

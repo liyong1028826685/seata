@@ -30,6 +30,7 @@ import io.seata.core.model.Resource;
 import io.seata.core.model.ResourceManager;
 
 /**
+ * 如果资源是数据库则这里RM指定的就是数据库资源
  * default resource manager, adapt all resource managers
  *
  * @author zhangsen

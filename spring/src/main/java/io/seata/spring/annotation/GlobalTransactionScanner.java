@@ -164,6 +164,16 @@ public class GlobalTransactionScanner extends AbstractAutoProxyCreator
         ShutdownHook.getInstance().destroyAll();
     }
 
+    /***
+     *
+     * 初始化TM和RM客户端
+     *
+     * @author liyong
+     * @date 21:15 2020-03-27
+     * @param
+     * @exception
+     * @return void
+     **/
     private void initClient() {
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("Initializing Global Transaction Clients ... ");

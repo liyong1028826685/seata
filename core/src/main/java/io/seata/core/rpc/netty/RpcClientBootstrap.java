@@ -53,7 +53,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author zhaojun
  */
 public class RpcClientBootstrap implements RemotingClient {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractRpcRemotingClient.class);
     private final NettyClientConfig nettyClientConfig;
     private final Bootstrap bootstrap = new Bootstrap();
@@ -76,9 +76,10 @@ public class RpcClientBootstrap implements RemotingClient {
         this.nettyClientConfig = nettyClientConfig;
         int selectorThreadSizeThreadSize = this.nettyClientConfig.getClientSelectorThreadSize();
         this.transactionRole = transactionRole;
+        //工作线程
         this.eventLoopGroupWorker = new NioEventLoopGroup(selectorThreadSizeThreadSize,
-            new NamedThreadFactory(getThreadPrefix(this.nettyClientConfig.getClientSelectorThreadPrefix()),
-                selectorThreadSizeThreadSize));
+                new NamedThreadFactory(getThreadPrefix(this.nettyClientConfig.getClientSelectorThreadPrefix()),
+                        selectorThreadSizeThreadSize));
         this.defaultEventExecutorGroup = eventExecutorGroup;
     }
 
@@ -104,82 +105,94 @@ public class RpcClientBootstrap implements RemotingClient {
             channel.pipeline().addLast(handlers);
         }
     }
-    
+
+    /***
+     *
+     * 连接TC同时设置编解码处理器，nio底层使用模式：seletkey、epoll模式
+     *
+     * @author liyong
+     * @date 22:23 2020-03-27
+     * @param
+     * @exception
+     * @return void
+     **/
     @Override
     public void start() {
         if (this.defaultEventExecutorGroup == null) {
             this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(nettyClientConfig.getClientWorkerThreads(),
-                new NamedThreadFactory(getThreadPrefix(nettyClientConfig.getClientWorkerThreadPrefix()),
-                    nettyClientConfig.getClientWorkerThreads()));
+                    new NamedThreadFactory(getThreadPrefix(nettyClientConfig.getClientWorkerThreadPrefix()),
+                            nettyClientConfig.getClientWorkerThreads()));
         }
         this.bootstrap.group(this.eventLoopGroupWorker).channel(
-            nettyClientConfig.getClientChannelClazz()).option(
-            ChannelOption.TCP_NODELAY, true).option(ChannelOption.SO_KEEPALIVE, true).option(
-            ChannelOption.CONNECT_TIMEOUT_MILLIS, nettyClientConfig.getConnectTimeoutMillis()).option(
-            ChannelOption.SO_SNDBUF, nettyClientConfig.getClientSocketSndBufSize()).option(ChannelOption.SO_RCVBUF,
-            nettyClientConfig.getClientSocketRcvBufSize());
-    
+                nettyClientConfig.getClientChannelClazz()).option(
+                ChannelOption.TCP_NODELAY, true).option(ChannelOption.SO_KEEPALIVE, true).option(
+                ChannelOption.CONNECT_TIMEOUT_MILLIS, nettyClientConfig.getConnectTimeoutMillis()).option(
+                ChannelOption.SO_SNDBUF, nettyClientConfig.getClientSocketSndBufSize()).option(ChannelOption.SO_RCVBUF,
+                nettyClientConfig.getClientSocketRcvBufSize());
+
         if (nettyClientConfig.enableNative()) {
             if (PlatformDependent.isOsx()) {
                 if (LOGGER.isInfoEnabled()) {
                     LOGGER.info("client run on macOS");
                 }
             } else {
+                //开启epoll模式
                 bootstrap.option(EpollChannelOption.EPOLL_MODE, EpollMode.EDGE_TRIGGERED)
-                    .option(EpollChannelOption.TCP_QUICKACK, true);
+                        .option(EpollChannelOption.TCP_QUICKACK, true);
             }
         }
+        //是否使用连接池
         if (nettyClientConfig.isUseConnPool()) {
             clientChannelPool = new AbstractChannelPoolMap<InetSocketAddress, FixedChannelPool>() {
                 @Override
                 protected FixedChannelPool newPool(InetSocketAddress key) {
                     return new FixedChannelPool(
-                        bootstrap.remoteAddress(key),
-                        new DefaultChannelPoolHandler() {
-                            @Override
-                            public void channelCreated(Channel ch) throws Exception {
-                                super.channelCreated(ch);
-                                final ChannelPipeline pipeline = ch.pipeline();
-                                pipeline.addLast(defaultEventExecutorGroup,
-                                    new IdleStateHandler(nettyClientConfig.getChannelMaxReadIdleSeconds(),
-                                        nettyClientConfig.getChannelMaxWriteIdleSeconds(),
-                                        nettyClientConfig.getChannelMaxAllIdleSeconds()));
-                                pipeline.addLast(defaultEventExecutorGroup, new RpcClientHandler());
-                            }
-                        },
-                        ChannelHealthChecker.ACTIVE,
-                        FixedChannelPool.AcquireTimeoutAction.FAIL,
-                        nettyClientConfig.getMaxAcquireConnMills(),
-                        nettyClientConfig.getPerHostMaxConn(),
-                        nettyClientConfig.getPendingConnSize(),
-                        false
+                            bootstrap.remoteAddress(key),
+                            new DefaultChannelPoolHandler() {
+                                @Override
+                                public void channelCreated(Channel ch) throws Exception {
+                                    super.channelCreated(ch);
+                                    final ChannelPipeline pipeline = ch.pipeline();
+                                    pipeline.addLast(defaultEventExecutorGroup,
+                                            new IdleStateHandler(nettyClientConfig.getChannelMaxReadIdleSeconds(),
+                                                    nettyClientConfig.getChannelMaxWriteIdleSeconds(),
+                                                    nettyClientConfig.getChannelMaxAllIdleSeconds()));
+                                    pipeline.addLast(defaultEventExecutorGroup, new RpcClientHandler());
+                                }
+                            },
+                            ChannelHealthChecker.ACTIVE,
+                            FixedChannelPool.AcquireTimeoutAction.FAIL,
+                            nettyClientConfig.getMaxAcquireConnMills(),
+                            nettyClientConfig.getPerHostMaxConn(),
+                            nettyClientConfig.getPendingConnSize(),
+                            false
                     );
                 }
             };
         } else {
             bootstrap.handler(
-                new ChannelInitializer<SocketChannel>() {
-                
-                    @Override
-                    public void initChannel(SocketChannel ch) {
-                        ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast(
-                            new IdleStateHandler(nettyClientConfig.getChannelMaxReadIdleSeconds(),
-                                nettyClientConfig.getChannelMaxWriteIdleSeconds(),
-                                nettyClientConfig.getChannelMaxAllIdleSeconds()))
-                                .addLast(new ProtocolV1Decoder())
-                                .addLast(new ProtocolV1Encoder());
-                        if (null != channelHandlers) {
-                            addChannelPipelineLast(ch, channelHandlers);
+                    new ChannelInitializer<SocketChannel>() {
+
+                        @Override
+                        public void initChannel(SocketChannel ch) {
+                            ChannelPipeline pipeline = ch.pipeline();
+                            pipeline.addLast(
+                                    new IdleStateHandler(nettyClientConfig.getChannelMaxReadIdleSeconds(),
+                                            nettyClientConfig.getChannelMaxWriteIdleSeconds(),
+                                            nettyClientConfig.getChannelMaxAllIdleSeconds()))
+                                    .addLast(new ProtocolV1Decoder())
+                                    .addLast(new ProtocolV1Encoder());
+                            if (null != channelHandlers) {
+                                addChannelPipelineLast(ch, channelHandlers);
+                            }
                         }
-                    }
-                });
+                    });
         }
         if (initialized.compareAndSet(false, true) && LOGGER.isInfoEnabled()) {
             LOGGER.info("RpcClientBootstrap has started");
         }
     }
-    
+
     @Override
     public void shutdown() {
         try {
@@ -218,7 +231,7 @@ public class RpcClientBootstrap implements RemotingClient {
         }
         return channel;
     }
-    
+
     /**
      * Gets thread prefix.
      *

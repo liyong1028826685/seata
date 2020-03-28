@@ -107,22 +107,27 @@ public abstract class AbstractRpcRemotingClient extends AbstractRpcRemoting
 
     @Override
     public void init() {
+        //设置消息处理器
         clientBootstrap.setChannelHandlers(new ClientHandler());
         clientBootstrap.start();
         timerExecutor.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
+                //定时重新连接
                 clientChannelManager.reconnect(getTransactionServiceGroup());
             }
         }, SCHEDULE_DELAY_MILLS, SCHEDULE_INTERVAL_MILLS, TimeUnit.MILLISECONDS);
+        //是否开启批量发送消息
         if (NettyClientConfig.isEnableClientBatchSendRequest()) {
             mergeSendExecutorService = new ThreadPoolExecutor(MAX_MERGE_SEND_THREAD,
                 MAX_MERGE_SEND_THREAD,
                 KEEP_ALIVE_TIME, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(),
                 new NamedThreadFactory(getThreadPrefix(), MAX_MERGE_SEND_THREAD));
+            //提交一个线程任务
             mergeSendExecutorService.submit(new MergedSendRunnable());
         }
+        //开启定时任务去清除超时任务并设置null
         super.init();
     }
 
@@ -137,7 +142,9 @@ public abstract class AbstractRpcRemotingClient extends AbstractRpcRemoting
 
     @Override
     public Object sendMsgWithResponse(Object msg, long timeout) throws TimeoutException {
+        //从注册中心获取有效的服务地址，可采用随机、轮询算法
         String validAddress = loadBalance(getTransactionServiceGroup());
+        //获取Channel
         Channel channel = clientChannelManager.acquireChannel(validAddress);
         Object result = super.sendAsyncRequestWithResponse(validAddress, channel, msg, timeout);
         return result;
@@ -185,6 +192,7 @@ public abstract class AbstractRpcRemotingClient extends AbstractRpcRemoting
     private String loadBalance(String transactionServiceGroup) {
         InetSocketAddress address = null;
         try {
+            //从注册中心获取连接地址列表
             List<InetSocketAddress> inetSocketAddressList = RegistryFactory.getInstance().lookup(transactionServiceGroup);
             address = LoadBalanceFactory.getInstance().select(inetSocketAddressList);
         } catch (Exception ex) {
@@ -273,6 +281,7 @@ public abstract class AbstractRpcRemotingClient extends AbstractRpcRemoting
     }
 
     /**
+     * 处理数据传输
      * The type ClientHandler.
      */
     @Sharable

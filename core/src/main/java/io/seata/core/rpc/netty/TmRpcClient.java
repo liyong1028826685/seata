@@ -79,25 +79,26 @@ public final class TmRpcClient extends AbstractRpcRemotingClient {
     }
 
     /**
+     * 获取TmRpcClient实例
      * Gets instance.
      *
      * @return the instance
      */
     public static TmRpcClient getInstance() {
         if (null == instance) {
-            synchronized (TmRpcClient.class) {
-                if (null == instance) {
-                    NettyClientConfig nettyClientConfig = new NettyClientConfig();
-                    final ThreadPoolExecutor messageExecutor = new ThreadPoolExecutor(
-                        nettyClientConfig.getClientWorkerThreads(), nettyClientConfig.getClientWorkerThreads(),
-                        KEEP_ALIVE_TIME, TimeUnit.SECONDS,
-                        new LinkedBlockingQueue<>(MAX_QUEUE_SIZE),
-                        new NamedThreadFactory(nettyClientConfig.getTmDispatchThreadPrefix(),
-                            nettyClientConfig.getClientWorkerThreads()),
-                        RejectedPolicies.runsOldestTaskPolicy());
-                    instance = new TmRpcClient(nettyClientConfig, null, messageExecutor);
+                synchronized (TmRpcClient.class) {
+                    if (null == instance) {
+                        NettyClientConfig nettyClientConfig = new NettyClientConfig();
+                        final ThreadPoolExecutor messageExecutor = new ThreadPoolExecutor(
+                                nettyClientConfig.getClientWorkerThreads(), nettyClientConfig.getClientWorkerThreads(),
+                                KEEP_ALIVE_TIME, TimeUnit.SECONDS,
+                                new LinkedBlockingQueue<>(MAX_QUEUE_SIZE),
+                                new NamedThreadFactory(nettyClientConfig.getTmDispatchThreadPrefix(),
+                                        nettyClientConfig.getClientWorkerThreads()),
+                                RejectedPolicies.runsOldestTaskPolicy());
+                        instance = new TmRpcClient(nettyClientConfig, null, messageExecutor);
+                    }
                 }
-            }
         }
         return instance;
     }
@@ -122,6 +123,7 @@ public final class TmRpcClient extends AbstractRpcRemotingClient {
     
     @Override
     public void init() {
+        //多线程使用cas
         if (initialized.compareAndSet(false, true)) {
             enableDegrade = CONFIG.getBoolean(ConfigurationKeys.SERVICE_PREFIX + ConfigurationKeys.ENABLE_DEGRADE_POSTFIX);
             super.init();

@@ -27,6 +27,9 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 
 /**
+ *
+ * 构建Netty的Channel对象工厂
+ *
  * The type Netty key poolable factory.
  *
  * @author slievrly

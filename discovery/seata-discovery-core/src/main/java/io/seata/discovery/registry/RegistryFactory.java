@@ -44,9 +44,11 @@ public class RegistryFactory {
         } catch (Exception exx) {
             throw new NotSupportYetException("not support registry type: " + registryTypeName);
         }
+        //指定文件配置
         if (RegistryType.File == registryType) {
             return FileRegistryServiceImpl.getInstance();
         } else {
+            //通过SPI扩展获取
             return EnhancedServiceLoader.load(RegistryProvider.class, Objects.requireNonNull(registryType).name()).provide();
         }
     }

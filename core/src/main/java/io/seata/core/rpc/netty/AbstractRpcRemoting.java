@@ -121,7 +121,7 @@ public abstract class AbstractRpcRemoting implements Disposable {
     }
 
     /**
-     * Init.
+     * Init. 开启定时 任务清除超时任务并且返回结果为null
      */
     public void init() {
         timerExecutor.scheduleAtFixedRate(new Runnable() {
@@ -130,6 +130,7 @@ public abstract class AbstractRpcRemoting implements Disposable {
                 for (Map.Entry<Integer, MessageFuture> entry : futures.entrySet()) {
                     if (entry.getValue().isTimeout()) {
                         futures.remove(entry.getKey());
+                        //返回null
                         entry.getValue().setResultMessage(null);
                         if (LOGGER.isDebugEnabled()) {
                             LOGGER.debug("timeout clear future: {}", entry.getValue().getRequestMessage().getBody());
@@ -456,6 +457,7 @@ public abstract class AbstractRpcRemoting implements Disposable {
         public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
             if (msg instanceof RpcMessage) {
                 final RpcMessage rpcMessage = (RpcMessage) msg;
+                //TC发起的请求或者或者是无结果的请求
                 if (rpcMessage.getMessageType() == ProtocolConstants.MSGTYPE_RESQUEST
                     || rpcMessage.getMessageType() == ProtocolConstants.MSGTYPE_RESQUEST_ONEWAY) {
                     if (LOGGER.isDebugEnabled()) {
@@ -466,6 +468,7 @@ public abstract class AbstractRpcRemoting implements Disposable {
                             @Override
                             public void run() {
                                 try {
+                                    //异步分发消息
                                     dispatch(rpcMessage, ctx);
                                 } catch (Throwable th) {
                                     LOGGER.error(FrameworkErrorCode.NetDispatch.getErrCode(), th.getMessage(), th);
@@ -488,12 +491,14 @@ public abstract class AbstractRpcRemoting implements Disposable {
                         }
                     }
                 } else {
+                    //Response响应结果
                     MessageFuture messageFuture = futures.remove(rpcMessage.getId());
                     if (LOGGER.isDebugEnabled()) {
                         LOGGER.debug(String
                             .format("%s msgId:%s, future :%s, body:%s", this, rpcMessage.getId(), messageFuture,
                                 rpcMessage.getBody()));
                     }
+                    //如果获取到Future则设置相应结果
                     if (messageFuture != null) {
                         messageFuture.setResultMessage(rpcMessage.getBody());
                     } else {
@@ -502,6 +507,7 @@ public abstract class AbstractRpcRemoting implements Disposable {
                                 @Override
                                 public void run() {
                                     try {
+                                        //异步分发消息
                                         dispatch(rpcMessage, ctx);
                                     } catch (Throwable th) {
                                         LOGGER.error(FrameworkErrorCode.NetDispatch.getErrCode(), th.getMessage(), th);

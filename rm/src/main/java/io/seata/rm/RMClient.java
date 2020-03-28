@@ -33,7 +33,9 @@ public class RMClient {
      */
     public static void init(String applicationId, String transactionServiceGroup) {
         RmRpcClient rmRpcClient = RmRpcClient.getInstance(applicationId, transactionServiceGroup);
+        //管理的资源：这里是数据库资源
         rmRpcClient.setResourceManager(DefaultResourceManager.get());
+        //RM需要接受TC的提交和回滚消息
         rmRpcClient.setClientMessageListener(new RmMessageListener(DefaultRMHandler.get(), rmRpcClient));
         rmRpcClient.init();
     }
